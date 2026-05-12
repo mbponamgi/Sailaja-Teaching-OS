@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sailaja's Teaching OS — French</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇫🇷</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f7f4ef;
+  --surface: #ffffff;
+  --surface2: #f0ece4;
+  --border: #e2dcd2;
+  --ink: #1e1a14;
+  --ink2: #6b6152;
+  --french-blue: #1a3a6b;
+  --french-blue-light: #2d5aa0;
+  --french-blue-pale: #e8eef8;
+  --rouge: #c0392b;
+  --rouge-pale: #fdf0ee;
+  --gold: #c9a84c;
+  --gold-pale: #fdf8ec;
+  --sage: #4a7c59;
+  --sage-pale: #edf5ef;
+  --cbse: #7b3fa0;
+  --cbse-pale: #f3edf8;
+  --cambridge: #1a6b4a;
+  --cambridge-pale: #e8f5ee;
+  --ibdp: #b8520a;
+  --ibdp-pale: #fef0e6;
+  --primary-band: #2d5aa0;
+  --middle-band: #4a7c59;
+  --secondary-band: #c9a84c;
+  --senior-band: #c0392b;
+  --radius: 6px;
+}
+body { font-family: 'Figtree', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; font-size: 14px; }
+
+/* ── LAYOUT ── */
+.app { display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--french-blue);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 230px;
+  z-index: 50;
+  overflow-y: auto;
+}
+.sidebar-header { padding: 22px 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.sidebar-logo { font-family: 'Instrument Serif', serif; font-size: 1.1rem; color: #fff; line-height: 1.25; margin-bottom: 4px; }
+.sidebar-sub { font-size: 0.68rem; color: rgba(255,255,255,0.45); letter-spacing: 0.06em; text-transform: uppercase; }
+.sidebar-flag { display: flex; gap: 3px; margin-top: 10px; }
+.flag-stripe { height: 3px; flex: 1; border-radius: 2px; }
+.curriculum-pills { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 10px; }
+.cpill { font-size: 0.6rem; padding: 2px 7px; border-radius: 10px; font-weight: 600; letter-spacing: 0.04em; }
+.cpill-cbse { background: var(--cbse); color: #fff; }
+.cpill-cam { background: var(--cambridge); color: #fff; }
+.cpill-ibdp { background: var(--ibdp); color: #fff; }
+.cpill-a1 { background: rgba(255,255,255,0.2); color: #fff; }
+.nav-section { padding: 14px 12px 6px; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.32); font-weight: 600; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin: 1px 8px; border-radius: var(--radius); cursor: pointer; color: rgba(255,255,255,0.65); font-size: 0.82rem; font-weight: 400; transition: all 0.15s; border: none; background: none; width: calc(100% - 16px); text-align: left; }
+.nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 500; }
+.nav-icon { font-size: 0.95rem; width: 18px; text-align: center; }
+.sidebar-footer { margin-top: auto; padding: 14px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.7rem; color: rgba(255,255,255,0.32); }
+
+/* ── MAIN ── */
+.main { margin-left: 230px; padding: 28px 32px; min-height: 100vh; }
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── PAGE HEADER ── */
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+.page-title { font-family: 'Instrument Serif', serif; font-size: 1.85rem; color: var(--ink); line-height: 1.1; }
+.page-title span { font-style: italic; color: var(--french-blue); }
+.page-subtitle { font-size: 0.82rem; color: var(--ink2); margin-top: 3px; }
+
+/* ── BUTTONS ── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius); font-size: 0.8rem; font-weight: 500; cursor: pointer; border: none; font-family: 'Figtree', sans-serif; transition: all 0.15s; }
+.btn-primary { background: var(--french-blue); color: #fff; }
+.btn-primary:hover { background: var(--french-blue-light); }
+.btn-ghost { background: transparent; color: var(--ink2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--surface2); color: var(--ink); }
+.btn-sm { padding: 4px 10px; font-size: 0.72rem; }
+
+/* ── CURRICULUM BADGES ── */
+.curr-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.04em; }
+.curr-cbse { background: var(--cbse-pale); color: var(--cbse); }
+.curr-cambridge { background: var(--cambridge-pale); color: var(--cambridge); }
+.curr-ibdp { background: var(--ibdp-pale); color: var(--ibdp); }
+.curr-a1 { background: var(--french-blue-pale); color: var(--french-blue); }
+
+/* ── GRADE BAND BADGES ── */
+.band-badge { font-size: 0.65rem; font-weight: 600; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.04em; }
+.band-primary { background: #e8eef8; color: var(--primary-band); }
+.band-middle { background: var(--sage-pale); color: var(--middle-band); }
+.band-secondary { background: var(--gold-pale); color: #8a6a10; }
+.band-senior { background: var(--rouge-pale); color: var(--rouge); }
+
+/* ── STAT CARDS ── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.stat-label { font-size: 0.68rem; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.stat-value { font-family: 'Instrument Serif', serif; font-size: 2rem; color: var(--ink); line-height: 1; }
+.stat-sub { font-size: 0.72rem; color: var(--ink2); margin-top: 3px; }
+.stat-card.blue { border-top: 3px solid var(--french-blue); }
+.stat-card.rouge { border-top: 3px solid var(--rouge); }
+.stat-card.gold { border-top: 3px solid var(--gold); }
+.stat-card.sage { border-top: 3px solid var(--sage); }
+.stat-card.cbse { border-top: 3px solid var(--cbse); }
+.stat-card.cam { border-top: 3px solid var(--cambridge); }
+
+/* ── CARDS ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
+.card-title { font-size: 0.74rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+/* ── LAYOUTS ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+
+/* ── STUDENT TABLE ── */
+.student-table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2); font-weight: 600; padding: 8px 10px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.82rem; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); cursor: pointer; }
+
+/* ── PROGRESS ── */
+.progress-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; background: var(--french-blue); transition: width 0.6s ease; }
+
+/* ── SKILL BADGES ── */
+.skill-badge { font-size: 0.66rem; padding: 2px 8px; border-radius: 10px; font-weight: 500; white-space: nowrap; }
+.badge-good { background: var(--sage-pale); color: var(--sage); }
+.badge-working { background: var(--gold-pale); color: #8a6a10; }
+.badge-needs { background: var(--rouge-pale); color: var(--rouge); }
+
+/* ── SESSION LOG ── */
+.session-entry { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; }
+.session-date { font-size: 0.7rem; color: var(--ink2); white-space: nowrap; min-width: 72px; padding-top: 2px; }
+.session-content { flex: 1; }
+.session-title { font-weight: 500; font-size: 0.82rem; margin-bottom: 2px; }
+.session-note { font-size: 0.75rem; color: var(--ink2); line-height: 1.5; }
+
+/* ── LESSON ITEMS ── */
+.lesson-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; transition: border-color 0.15s; cursor: pointer; }
+.lesson-item:hover { border-color: var(--french-blue); }
+.lesson-num { width: 30px; height: 30px; border-radius: 50%; background: var(--french-blue-pale); color: var(--french-blue); display: flex; align-items: center; justify-content: center; font-family: 'Instrument Serif', serif; font-size: 0.9rem; flex-shrink: 0; }
+.lesson-info { flex: 1; }
+.lesson-title { font-weight: 500; font-size: 0.85rem; margin-bottom: 2px; }
+.lesson-meta { font-size: 0.72rem; color: var(--ink2); }
+.lesson-tag { font-size: 0.64rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.tag-done { background: var(--sage-pale); color: var(--sage); }
+.tag-upcoming { background: var(--french-blue-pale); color: var(--french-blue); }
+.tag-draft { background: var(--gold-pale); color: #8a6a10; }
+
+/* ── FILTERS ── */
+.filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
+.filter-btn { font-size: 0.75rem; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--ink2); cursor: pointer; transition: all 0.15s; font-family: 'Figtree', sans-serif; }
+.filter-btn:hover, .filter-btn.active { background: var(--french-blue); color: #fff; border-color: var(--french-blue); }
+
+/* ── COMMS ── */
+.comm-template { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; }
+.comm-header { padding: 10px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.comm-type { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2); }
+.comm-body { padding: 14px; font-size: 0.82rem; line-height: 1.85; color: var(--ink2); white-space: pre-line; }
+.fill-blank { background: var(--french-blue-pale); color: var(--french-blue); padding: 1px 5px; border-radius: 3px; font-weight: 500; font-size: 0.76rem; }
+
+/* ── QUIZ ── */
+.quiz-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; }
+.quiz-q { font-weight: 500; font-size: 0.88rem; margin-bottom: 10px; color: var(--ink); }
+.quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.quiz-option { padding: 7px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; background: var(--bg); font-family: 'Figtree', sans-serif; }
+.quiz-option:hover { border-color: var(--french-blue); background: var(--french-blue-pale); }
+.quiz-option.correct { background: var(--sage-pale); border-color: var(--sage); color: var(--sage); }
+.quiz-option.wrong { background: var(--rouge-pale); border-color: var(--rouge); color: var(--rouge); }
+
+/* ── CALENDAR ── */
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-day-header { text-align: center; font-size: 0.64rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink2); padding: 5px; }
+.cal-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5px 3px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; border: 1px solid transparent; transition: all 0.15s; min-height: 46px; }
+.cal-day:hover { background: var(--surface2); border-color: var(--border); }
+.cal-day.today { background: var(--french-blue); color: #fff; font-weight: 600; }
+.cal-day.has-class { border-color: rgba(45,90,160,0.3); }
+.cal-dot { width: 4px; height: 4px; border-radius: 50%; margin-top: 2px; }
+.dot-blue { background: var(--french-blue-light); }
+.dot-rouge { background: var(--rouge); }
+.dot-cbse { background: var(--cbse); }
+
+/* ── MODAL ── */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(30,26,20,0.55); z-index: 200; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(3px); }
+.modal-bg.open { display: flex; }
+.modal { background: var(--surface); border-radius: 8px; max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px; position: relative; animation: fadeIn 0.2s ease; }
+.modal h3 { font-family: 'Instrument Serif', serif; font-size: 1.45rem; margin-bottom: 5px; }
+.modal-sub { font-size: 0.82rem; color: var(--ink2); margin-bottom: 20px; }
+.modal-close { position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--ink2); }
+
+/* ── FORM ── */
+.form-group { margin-bottom: 14px; }
+label { display: block; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink2); margin-bottom: 5px; }
+input, textarea, select { width: 100%; padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'Figtree', sans-serif; font-size: 0.82rem; color: var(--ink); background: var(--bg); outline: none; transition: border-color 0.15s; }
+input:focus, textarea:focus, select:focus { border-color: var(--french-blue); }
+textarea { resize: vertical; min-height: 70px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+/* ── CURRICULUM SECTION HEADERS ── */
+.section-header { display: flex; align-items: center; gap: 10px; margin: 20px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+.section-header-title { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--ink); color: #fff; padding: 10px 18px; border-radius: var(--radius); font-size: 0.82rem; z-index: 300; opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── TABS ── */
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+.tab { padding: 8px 18px; font-size: 0.8rem; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--ink2); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; font-family: 'Figtree', sans-serif; }
+.tab:hover { color: var(--ink); }
+.tab.active { color: var(--french-blue); border-bottom-color: var(--french-blue); font-weight: 600; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 20px; }
+  .two-col, .three-col { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">Sailaja's<br>Teaching OS</div>
+    <div class="sidebar-sub">French · All Levels</div>
+    <div class="sidebar-flag">
+      <div class="flag-stripe" style="background:#002395"></div>
+      <div class="flag-stripe" style="background:#ffffff;opacity:0.35"></div>
+      <div class="flag-stripe" style="background:#ED2939"></div>
+    </div>
+    <div class="curriculum-pills">
+      <span class="cpill cpill-a1">A1/A2</span>
+      <span class="cpill cpill-cbse">CBSE</span>
+      <span class="cpill cpill-cam">Cambridge</span>
+      <span class="cpill cpill-ibdp">IBDP</span>
+    </div>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <button class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">🏠</span> Dashboard</button>
+  <button class="nav-item" onclick="showPage('students')"><span class="nav-icon">👩‍🎓</span> All Students</button>
+
+  <div class="nav-section">Language Tuitions</div>
+  <button class="nav-item" onclick="showPage('a1a2')"><span class="nav-icon">🇫🇷</span> A1 / A2 Students</button>
+
+  <div class="nav-section">School Curricula</div>
+  <button class="nav-item" onclick="showPage('cbse')"><span class="nav-icon">📘</span> CBSE (Gr 3–12)</button>
+  <button class="nav-item" onclick="showPage('cambridge')"><span class="nav-icon">📗</span> Cambridge (Gr 3–12)</button>
+  <button class="nav-item" onclick="showPage('ibdp')"><span class="nav-icon">📙</span> IBDP (Gr 11–12)</button>
+
+  <div class="nav-section">Planning</div>
+  <button class="nav-item" onclick="showPage('lessons')"><span class="nav-icon">📚</span> Lesson Plans</button>
+  <button class="nav-item" onclick="showPage('calendar')"><span class="nav-icon">📅</span> Schedule</button>
+  <button class="nav-item" onclick="showPage('exams')"><span class="nav-icon">📝</span> Exams & Assessments</button>
+
+  <div class="nav-section">Resources</div>
+  <button class="nav-item" onclick="showPage('quizzes')"><span class="nav-icon">✏️</span> Quiz Bank</button>
+  <button class="nav-item" onclick="showPage('comms')"><span class="nav-icon">💬</span> Parent Comms</button>
+  <button class="nav-item" onclick="showPage('resources')"><span class="nav-icon">🗂️</span> Resources</button>
+
+  <div class="sidebar-footer">
+    B1 Certified · Alliance Française<br>6 yrs · International School HYD
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main class="main">
+
+<!-- ════════════════════════════════
+     DASHBOARD
+════════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Bonjour, <span>Sailaja</span> 👋</div>
+      <div class="page-subtitle">Sunday, 4 May 2026 · All curricula overview</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-student')">+ Add Student</button>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card blue"><div class="stat-label">Total Students</div><div class="stat-value">14</div><div class="stat-sub">All curricula</div></div>
+    <div class="stat-card cbse"><div class="stat-label">CBSE</div><div class="stat-value">5</div><div class="stat-sub">Gr 4 · 7 · 9 · 10 · 12</div></div>
+    <div class="stat-card cam"><div class="stat-label">Cambridge</div><div class="stat-value">4</div><div class="stat-sub">Gr 5 · 7 · 8 · 10</div></div>
+    <div class="stat-card rouge"><div class="stat-label">IBDP</div><div class="stat-value">2</div><div class="stat-sub">SL · HL · Gr 11–12</div></div>
+    <div class="stat-card gold"><div class="stat-label">A1/A2</div><div class="stat-value">4</div><div class="stat-sub">Language tuitions</div></div>
+    <div class="stat-card sage"><div class="stat-label">This Week</div><div class="stat-value">9</div><div class="stat-sub">Classes scheduled</div></div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">Upcoming Sessions</div>
+        <div class="session-entry">
+          <div class="session-date">Mon 5 May<br>3:30 PM</div>
+          <div class="session-content">
+            <div class="session-title">Rohan K. — CBSE Gr 10 · Chapter 4 Révision</div>
+            <div class="session-note">Board exam prep · tenses + reading comprehension</div>
+          </div>
+          <span class="curr-badge curr-cbse">CBSE</span>
+        </div>
+        <div class="session-entry">
+          <div class="session-date">Mon 5 May<br>5:00 PM</div>
+          <div class="session-content">
+            <div class="session-title">Priya R. — A1 Leçon 7: Les couleurs</div>
+            <div class="session-note">Vocabulary + adjective agreement</div>
+          </div>
+          <span class="curr-badge curr-a1">A1</span>
+        </div>
+        <div class="session-entry">
+          <div class="session-date">Tue 6 May<br>4:00 PM</div>
+          <div class="session-content">
+            <div class="session-title">Ananya S. — Cambridge Gr 8 · Letter writing</div>
+            <div class="session-note">Formal letter format · IGCSE writing skills</div>
+          </div>
+          <span class="curr-badge curr-cambridge">Cambridge</span>
+        </div>
+        <div class="session-entry">
+          <div class="session-date">Wed 7 May<br>6:00 PM</div>
+          <div class="session-content">
+            <div class="session-title">Ishaan M. — IBDP SL · Paper 1 practice</div>
+            <div class="session-note">Unseen text analysis · literary commentary</div>
+          </div>
+          <span class="curr-badge curr-ibdp">IBDP</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-title">Progress by Curriculum</div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink2);margin-bottom:5px;"><span>CBSE — 5 students</span><span>avg 68%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:68%;background:var(--cbse)"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink2);margin-bottom:5px;"><span>Cambridge — 4 students</span><span>avg 74%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:74%;background:var(--cambridge)"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink2);margin-bottom:5px;"><span>IBDP — 2 students</span><span>avg 61%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:61%;background:var(--ibdp)"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--ink2);margin-bottom:5px;"><span>A1/A2 — 4 students</span><span>avg 59%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:59%;background:var(--french-blue)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Upcoming Exams / Deadlines</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:0.82rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--rouge-pale);border-radius:4px;border-left:3px solid var(--rouge);">
+            <span>CBSE Gr 10 Board Mock</span><span style="font-size:0.72rem;color:var(--rouge);font-weight:600;">May 15</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--ibdp-pale);border-radius:4px;border-left:3px solid var(--ibdp);">
+            <span>IBDP Paper 1 Practice</span><span style="font-size:0.72rem;color:var(--ibdp);font-weight:600;">May 18</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--cambridge-pale);border-radius:4px;border-left:3px solid var(--cambridge);">
+            <span>Cambridge IGCSE Mock — Gr 10</span><span style="font-size:0.72rem;color:var(--cambridge);font-weight:600;">May 22</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--french-blue-pale);border-radius:4px;border-left:3px solid var(--french-blue);">
+            <span>A1 Module 1 Assessment — Meera</span><span style="font-size:0.72rem;color:var(--french-blue);font-weight:600;">May 24</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     ALL STUDENTS
+════════════════════════════════ -->
+<div class="page" id="page-students">
+  <div class="page-header">
+    <div>
+      <div class="page-title">All <span>Students</span></div>
+      <div class="page-subtitle">14 students · CBSE · Cambridge · IBDP · A1/A2</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-student')">+ Add Student</button>
+  </div>
+
+  <div class="filter-bar">
+    <span style="font-size:0.75rem;color:var(--ink2);font-weight:500;">Filter:</span>
+    <button class="filter-btn active" onclick="filterStudents('all',this)">All (14)</button>
+    <button class="filter-btn" onclick="filterStudents('cbse',this)">CBSE (5)</button>
+    <button class="filter-btn" onclick="filterStudents('cambridge',this)">Cambridge (4)</button>
+    <button class="filter-btn" onclick="filterStudents('ibdp',this)">IBDP (2)</button>
+    <button class="filter-btn" onclick="filterStudents('a1',this)">A1/A2 (4)</button>
+    <button class="filter-btn" onclick="filterStudents('primary',this)">Gr 3–5</button>
+    <button class="filter-btn" onclick="filterStudents('middle',this)">Gr 6–8</button>
+    <button class="filter-btn" onclick="filterStudents('secondary',this)">Gr 9–10</button>
+    <button class="filter-btn" onclick="filterStudents('senior',this)">Gr 11–12</button>
+  </div>
+
+  <div class="card" style="padding:0;">
+    <div class="student-table-wrap">
+      <table id="students-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Curriculum</th>
+            <th>Grade / Level</th>
+            <th>Focus</th>
+            <th>Day & Time</th>
+            <th>Progress</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- CBSE -->
+          <tr data-curr="cbse" data-band="primary" onclick="openModal('view-student')">
+            <td><strong>Aarav T.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mrs. T · 98765XXXXX</span></td>
+            <td><span class="curr-badge curr-cbse">CBSE</span></td>
+            <td><span class="band-badge band-primary">Grade 4</span></td>
+            <td>French basics · grammar</td>
+            <td>Tue · 4:00 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:55%;background:var(--cbse)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">55%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="cbse" data-band="middle" onclick="openModal('view-student')">
+            <td><strong>Diya R.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mr. R · 91234XXXXX</span></td>
+            <td><span class="curr-badge curr-cbse">CBSE</span></td>
+            <td><span class="band-badge band-middle">Grade 7</span></td>
+            <td>Grammar · vocabulary</td>
+            <td>Thu · 4:30 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:70%;background:var(--cbse)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">70%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="cbse" data-band="secondary" onclick="openModal('view-student')">
+            <td><strong>Rohan K.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mrs. K · 87654XXXXX</span></td>
+            <td><span class="curr-badge curr-cbse">CBSE</span></td>
+            <td><span class="band-badge band-secondary">Grade 10</span></td>
+            <td>Board exam prep</td>
+            <td>Mon · 3:30 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:78%;background:var(--cbse)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">78%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="cbse" data-band="secondary" onclick="openModal('view-student')">
+            <td><strong>Neha P.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mr. P · 99887XXXXX</span></td>
+            <td><span class="curr-badge curr-cbse">CBSE</span></td>
+            <td><span class="band-badge band-secondary">Grade 9</span></td>
+            <td>Grammar · writing</td>
+            <td>Fri · 5:00 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:62%;background:var(--cbse)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">62%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="cbse" data-band="senior" onclick="openModal('view-student')">
+            <td><strong>Kabir S.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mrs. S · 77665XXXXX</span></td>
+            <td><span class="curr-badge curr-cbse">CBSE</span></td>
+            <td><span class="band-badge band-senior">Grade 12</span></td>
+            <td>Board exam · literature</td>
+            <td>Sat · 9:00 AM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:71%;background:var(--cbse)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">71%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <!-- Cambridge -->
+          <tr data-curr="cambridge" data-band="primary" onclick="openModal('view-student')">
+            <td><strong>Sara M.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Ms. M · 88776XXXXX</span></td>
+            <td><span class="curr-badge curr-cambridge">Cambridge</span></td>
+            <td><span class="band-badge band-primary">Grade 5</span></td>
+            <td>French basics · oral</td>
+            <td>Wed · 3:00 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:60%;background:var(--cambridge)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">60%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="cambridge" data-band="middle" onclick="openModal('view-student')">
+            <td><strong>Ananya S.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mr. S · 90011XXXXX</span></td>
+            <td><span class="curr-badge curr-cambridge">Cambridge</span></td>
+            <td><span class="band-badge band-middle">Grade 8</span></td>
+            <td>Writing · literature</td>
+            <td>Tue · 4:00 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:80%;background:var(--cambridge)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">80%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="cambridge" data-band="middle" onclick="openModal('view-student')">
+            <td><strong>Ravi C.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mrs. C · 98123XXXXX</span></td>
+            <td><span class="curr-badge curr-cambridge">Cambridge</span></td>
+            <td><span class="band-badge band-middle">Grade 7</span></td>
+            <td>Grammar · vocabulary</td>
+            <td>Thu · 5:00 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:67%;background:var(--cambridge)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">67%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="cambridge" data-band="secondary" onclick="openModal('view-student')">
+            <td><strong>Layla H.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mr. H · 91122XXXXX</span></td>
+            <td><span class="curr-badge curr-cambridge">Cambridge</span></td>
+            <td><span class="band-badge band-secondary">Grade 10 (IGCSE)</span></td>
+            <td>IGCSE exam prep</td>
+            <td>Sat · 11:00 AM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:83%;background:var(--cambridge)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">83%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <!-- IBDP -->
+          <tr data-curr="ibdp" data-band="senior" onclick="openModal('view-student')">
+            <td><strong>Ishaan M.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mrs. M · 87123XXXXX</span></td>
+            <td><span class="curr-badge curr-ibdp">IBDP</span></td>
+            <td><span class="band-badge band-senior">Grade 11 · SL</span></td>
+            <td>Paper 1 · Paper 2</td>
+            <td>Wed · 6:00 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:58%;background:var(--ibdp)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">58%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="ibdp" data-band="senior" onclick="openModal('view-student')">
+            <td><strong>Zara F.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mr. F · 96654XXXXX</span></td>
+            <td><span class="curr-badge curr-ibdp">IBDP</span></td>
+            <td><span class="band-badge band-senior">Grade 12 · HL</span></td>
+            <td>HL literature · IA</td>
+            <td>Fri · 4:00 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:65%;background:var(--ibdp)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">65%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <!-- A1/A2 -->
+          <tr data-curr="a1" data-band="a1" onclick="openModal('view-student')">
+            <td><strong>Priya R.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mrs. R · 98765XXXXX</span></td>
+            <td><span class="curr-badge curr-a1">A1</span></td>
+            <td><span style="font-size:0.72rem;color:var(--french-blue);">Week 14</span></td>
+            <td>Language tuition</td>
+            <td>Mon · 5:00 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:72%"></div></div><span style="font-size:0.7rem;color:var(--ink2);">72%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="a1" data-band="a1" onclick="openModal('view-student')">
+            <td><strong>Arjun M.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mrs. M · 97765XXXXX</span></td>
+            <td><span class="curr-badge curr-a1">A1</span></td>
+            <td><span style="font-size:0.72rem;color:var(--french-blue);">Week 7</span></td>
+            <td>Language tuition</td>
+            <td>Thu · 5:30 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:45%;background:var(--gold)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">45%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="a1" data-band="a1" onclick="openModal('view-student')">
+            <td><strong>Meera S.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Mr. S · 96543XXXXX</span></td>
+            <td><span class="curr-badge curr-a1">A1→A2</span></td>
+            <td><span style="font-size:0.72rem;color:var(--french-blue);">Week 20</span></td>
+            <td>Language tuition</td>
+            <td>Sat · 10:00 AM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:88%;background:var(--sage)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">88%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+          <tr data-curr="a1" data-band="a1" onclick="openModal('view-student')">
+            <td><strong>Kiran P.</strong><br><span style="font-size:0.72rem;color:var(--ink2);">Parent: Ms. P · 95432XXXXX</span></td>
+            <td><span class="curr-badge curr-a1">A1</span></td>
+            <td><span style="font-size:0.72rem;color:var(--french-blue);">Week 3</span></td>
+            <td>Language tuition</td>
+            <td>Wed · 6:00 PM</td>
+            <td><div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:30%;background:var(--rouge)"></div></div><span style="font-size:0.7rem;color:var(--ink2);">30%</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     A1/A2
+════════════════════════════════ -->
+<div class="page" id="page-a1a2">
+  <div class="page-header">
+    <div>
+      <div class="page-title"><span>A1 / A2</span> Language Tuitions</div>
+      <div class="page-subtitle">4 students · Conversational French · DELF pathway</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-session')">+ Log Session</button>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Student Progress</div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div><div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px;"><span><strong>Priya R.</strong> — A1 Wk 14</span><span>72%</span></div><div class="progress-bar"><div class="progress-fill" style="width:72%"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px;"><span><strong>Arjun M.</strong> — A1 Wk 7</span><span>45%</span></div><div class="progress-bar"><div class="progress-fill" style="width:45%;background:var(--gold)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px;"><span><strong>Meera S.</strong> — A1→A2 Wk 20</span><span>88%</span></div><div class="progress-bar"><div class="progress-fill" style="width:88%;background:var(--sage)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px;"><span><strong>Kiran P.</strong> — A1 Wk 3</span><span>30%</span></div><div class="progress-bar"><div class="progress-fill" style="width:30%;background:var(--rouge)"></div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">A1 Curriculum Map</div>
+      <div class="lesson-item"><div class="lesson-num">M1</div><div class="lesson-info"><div class="lesson-title">Premiers pas — Greetings, alphabet, numbers</div><div class="lesson-meta">4 lessons · Priya ✓ Arjun ✓ Meera ✓</div></div><span class="lesson-tag tag-done">Done</span></div>
+      <div class="lesson-item"><div class="lesson-num">M2</div><div class="lesson-info"><div class="lesson-title">La vie quotidienne — Family, colours, food</div><div class="lesson-meta">4 lessons · Priya → in progress</div></div><span class="lesson-tag tag-upcoming">Active</span></div>
+      <div class="lesson-item"><div class="lesson-num">M3</div><div class="lesson-info"><div class="lesson-title">En ville — Directions, transport, shopping</div><div class="lesson-meta">4 lessons · Meera → starting soon</div></div><span class="lesson-tag tag-draft">Draft</span></div>
+      <div class="lesson-item"><div class="lesson-num">A2</div><div class="lesson-info"><div class="lesson-title">A2 Bridge — Past tense, opinions, travel</div><div class="lesson-meta">Meera eligible after Module 3</div></div><span class="lesson-tag tag-draft">Planned</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     CBSE
+════════════════════════════════ -->
+<div class="page" id="page-cbse">
+  <div class="page-header">
+    <div>
+      <div class="page-title"><span>CBSE</span> Students</div>
+      <div class="page-subtitle">5 students · Grade 4 to 12 · Board exam focus</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-session')">+ Log Session</button>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="showTab('cbse','primary',this)">Grade 4 (Primary)</button>
+    <button class="tab" onclick="showTab('cbse','middle',this)">Grade 7 (Middle)</button>
+    <button class="tab" onclick="showTab('cbse','secondary',this)">Grade 9–10 (Board)</button>
+    <button class="tab" onclick="showTab('cbse','senior',this)">Grade 12 (Senior)</button>
+  </div>
+
+  <div id="cbse-primary" class="cbse-tab">
+    <div class="two-col">
+      <div class="card"><div class="card-title">Aarav T. — Grade 4 <span class="curr-badge curr-cbse">CBSE</span></div>
+        <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;">
+          <strong>Focus:</strong> French basics — greetings, colours, family vocabulary, simple sentences<br>
+          <strong>Textbook:</strong> CBSE French Primer Grade 4<br>
+          <strong>Schedule:</strong> Tuesday · 4:00 PM · 45 min<br>
+          <strong>Progress:</strong> 55% — on track
+        </div>
+        <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:55%;background:var(--cbse)"></div></div>
+      </div>
+      <div class="card"><div class="card-title">Recent Session Notes</div>
+        <div class="session-entry"><div class="session-date">29 Apr</div><div class="session-content"><div class="session-title">Les animaux — Animal vocabulary</div><div class="session-note">Good retention. Completed colouring worksheet. Needs number practice.</div></div></div>
+        <div class="session-entry"><div class="session-date">22 Apr</div><div class="session-content"><div class="session-title">Les couleurs</div><div class="session-note">Identified all 10 basic colours. Writing needs work.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cbse-middle" class="cbse-tab" style="display:none;">
+    <div class="two-col">
+      <div class="card"><div class="card-title">Diya R. — Grade 7 <span class="curr-badge curr-cbse">CBSE</span></div>
+        <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;">
+          <strong>Focus:</strong> Grammar — verb conjugation, negation, question formation, reading<br>
+          <strong>Textbook:</strong> CBSE French Grade 7 (Apprenons le Français)<br>
+          <strong>Schedule:</strong> Thursday · 4:30 PM · 60 min<br>
+          <strong>Progress:</strong> 70% — good progress
+        </div>
+        <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:70%;background:var(--cbse)"></div></div>
+      </div>
+      <div class="card"><div class="card-title">Recent Session Notes</div>
+        <div class="session-entry"><div class="session-date">30 Apr</div><div class="session-content"><div class="session-title">Negation — ne...pas, ne...jamais</div><div class="session-note">Understood concept well. Written exercises completed.</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cbse-secondary" class="cbse-tab" style="display:none;">
+    <div class="two-col">
+      <div class="card"><div class="card-title">Rohan K. — Grade 10 <span class="curr-badge curr-cbse">CBSE</span></div>
+        <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;">
+          <strong>Focus:</strong> Board exam preparation — all tenses, comprehension, composition<br>
+          <strong>Schedule:</strong> Monday · 3:30 PM · 60 min<br>
+          <strong>Next exam:</strong> CBSE Board Mock — May 15
+        </div>
+        <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:78%;background:var(--cbse)"></div></div>
+      </div>
+      <div class="card"><div class="card-title">Neha P. — Grade 9 <span class="curr-badge curr-cbse">CBSE</span></div>
+        <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;">
+          <strong>Focus:</strong> Grammar foundation — tenses, writing, comprehension<br>
+          <strong>Schedule:</strong> Friday · 5:00 PM · 60 min<br>
+          <strong>Progress:</strong> 62% — needs writing practice
+        </div>
+        <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:62%;background:var(--cbse)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cbse-senior" class="cbse-tab" style="display:none;">
+    <div class="two-col">
+      <div class="card"><div class="card-title">Kabir S. — Grade 12 <span class="curr-badge curr-cbse">CBSE</span></div>
+        <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;">
+          <strong>Focus:</strong> Board exam — literature, essay writing, oral exam prep<br>
+          <strong>Schedule:</strong> Saturday · 9:00 AM · 75 min<br>
+          <strong>Progress:</strong> 71% — on track for board
+        </div>
+        <div class="progress-bar" style="margin-top:10px;"><div class="progress-fill" style="width:71%;background:var(--cbse)"></div></div>
+      </div>
+      <div class="card"><div class="card-title">Recent Sessions</div>
+        <div class="session-entry"><div class="session-date">26 Apr</div><div class="session-content"><div class="session-title">Essay writing — mon avenir</div><div class="session-note">Draft reviewed. Structure good, vocabulary needs expansion.</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     CAMBRIDGE
+════════════════════════════════ -->
+<div class="page" id="page-cambridge">
+  <div class="page-header">
+    <div>
+      <div class="page-title"><span>Cambridge</span> Students</div>
+      <div class="page-subtitle">4 students · Grade 5 to IGCSE · Cambridge International</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-session')">+ Log Session</button>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="card"><div class="card-title">Sara M. — Grade 5 <span class="curr-badge curr-cambridge">Cambridge</span> <span class="band-badge band-primary">Primary</span></div>
+        <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;"><strong>Focus:</strong> Cambridge Primary French — oral, listening, vocabulary<br><strong>Schedule:</strong> Wednesday · 3:00 PM · 45 min<br><strong>Progress:</strong> 60%</div>
+        <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:60%;background:var(--cambridge)"></div></div>
+      </div>
+      <div class="card"><div class="card-title">Ravi C. — Grade 7 <span class="curr-badge curr-cambridge">Cambridge</span> <span class="band-badge band-middle">Middle</span></div>
+        <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;"><strong>Focus:</strong> Cambridge Lower Secondary — grammar, vocabulary, writing<br><strong>Schedule:</strong> Thursday · 5:00 PM · 60 min<br><strong>Progress:</strong> 67%</div>
+        <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:67%;background:var(--cambridge)"></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card"><div class="card-title">Ananya S. — Grade 8 <span class="curr-badge curr-cambridge">Cambridge</span> <span class="band-badge band-middle">Middle</span></div>
+        <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;"><strong>Focus:</strong> Cambridge Checkpoint prep — writing, reading, listening<br><strong>Schedule:</strong> Tuesday · 4:00 PM · 60 min<br><strong>Progress:</strong> 80% — strong student</div>
+        <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:80%;background:var(--cambridge)"></div></div>
+      </div>
+      <div class="card"><div class="card-title">Layla H. — IGCSE Gr 10 <span class="curr-badge curr-cambridge">Cambridge</span> <span class="band-badge band-secondary">IGCSE</span></div>
+        <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;"><strong>Focus:</strong> IGCSE French — Paper 1/2/3/4 — Reading, Writing, Listening, Speaking<br><strong>Schedule:</strong> Saturday · 11:00 AM · 75 min<br><strong>Next exam:</strong> IGCSE Mock — May 22<br><strong>Progress:</strong> 83%</div>
+        <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:83%;background:var(--cambridge)"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     IBDP
+════════════════════════════════ -->
+<div class="page" id="page-ibdp">
+  <div class="page-header">
+    <div>
+      <div class="page-title"><span>IBDP</span> Students</div>
+      <div class="page-subtitle">2 students · SL & HL · Paper 1, Paper 2, IA</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-session')">+ Log Session</button>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Ishaan M. — Grade 11 · SL <span class="curr-badge curr-ibdp">IBDP SL</span></div>
+      <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;margin-bottom:12px;">
+        <strong>Schedule:</strong> Wednesday · 6:00 PM · 75 min<br>
+        <strong>Focus areas:</strong> Paper 1 (Productive skills) · Paper 2 (Receptive skills)<br>
+        <strong>Themes covered:</strong> Identities · Experiences · Human ingenuity
+      </div>
+      <div class="progress-bar" style="margin-bottom:16px;"><div class="progress-fill" style="width:58%;background:var(--ibdp)"></div></div>
+      <table><tr><th>Component</th><th>Weight</th><th>Status</th></tr>
+        <tr><td>Paper 1 — Writing</td><td>25%</td><td><span class="skill-badge badge-working">In progress</span></td></tr>
+        <tr><td>Paper 2 — Reading/Listening</td><td>50%</td><td><span class="skill-badge badge-working">In progress</span></td></tr>
+        <tr><td>Individual Oral (IO)</td><td>25%</td><td><span class="skill-badge badge-needs">Not started</span></td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Zara F. — Grade 12 · HL <span class="curr-badge curr-ibdp">IBDP HL</span></div>
+      <div style="font-size:0.82rem;color:var(--ink2);line-height:1.8;margin-bottom:12px;">
+        <strong>Schedule:</strong> Friday · 4:00 PM · 90 min<br>
+        <strong>Focus areas:</strong> Paper 1 · Paper 2 · HL Literature Essay (IA)<br>
+        <strong>Literary works:</strong> Le Petit Prince · selected poems
+      </div>
+      <div class="progress-bar" style="margin-bottom:16px;"><div class="progress-fill" style="width:65%;background:var(--ibdp)"></div></div>
+      <table><tr><th>Component</th><th>Weight</th><th>Status</th></tr>
+        <tr><td>Paper 1 — Writing</td><td>25%</td><td><span class="skill-badge badge-good">On track</span></td></tr>
+        <tr><td>Paper 2 — Reading/Listening</td><td>40%</td><td><span class="skill-badge badge-working">In progress</span></td></tr>
+        <tr><td>HL Essay (IA)</td><td>20%</td><td><span class="skill-badge badge-working">Draft stage</span></td></tr>
+        <tr><td>Individual Oral (IO)</td><td>15%</td><td><span class="skill-badge badge-needs">Upcoming</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">IB Assessment Calendar — May–June 2026</div>
+    <table>
+      <tr><th>Date</th><th>Student</th><th>Component</th><th>Notes</th></tr>
+      <tr><td>May 18</td><td>Ishaan M.</td><td>Paper 1 Practice</td><td>Timed writing — 45 min</td></tr>
+      <tr><td>May 25</td><td>Zara F.</td><td>HL Essay draft review</td><td>Le Petit Prince analysis</td></tr>
+      <tr><td>June 3</td><td>Both</td><td>Paper 2 mock</td><td>Full reading + listening</td></tr>
+      <tr><td>June 10</td><td>Zara F.</td><td>Individual Oral practice</td><td>Recorded mock</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     LESSON PLANS
+════════════════════════════════ -->
+<div class="page" id="page-lessons">
+  <div class="page-header">
+    <div>
+      <div class="page-title"><span>Lesson</span> Plans</div>
+      <div class="page-subtitle">All curricula · reusable templates</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-lesson')">+ New Lesson</button>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">All</button>
+    <button class="filter-btn" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">A1/A2</button>
+    <button class="filter-btn" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">CBSE</button>
+    <button class="filter-btn" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Cambridge</button>
+    <button class="filter-btn" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">IBDP</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Reusable Lesson Template — All Levels</div>
+    <table>
+      <tr><th>Phase</th><th>Activity</th><th>Duration</th><th>Adapts to</th></tr>
+      <tr><td><strong>Warm-up</strong></td><td>Review + quick recall questions</td><td>5–8 min</td><td>All levels</td></tr>
+      <tr><td><strong>Teach</strong></td><td>New concept with examples</td><td>15 min</td><td>All levels</td></tr>
+      <tr><td><strong>Practice</strong></td><td>Guided exercises / drills</td><td>15 min</td><td>CBSE, Cambridge, A1</td></tr>
+      <tr><td><strong>Analysis</strong></td><td>Text / passage analysis</td><td>15 min</td><td>Cambridge, IBDP</td></tr>
+      <tr><td><strong>Production</strong></td><td>Writing / speaking / role-play</td><td>10 min</td><td>All levels</td></tr>
+      <tr><td><strong>Wrap-up</strong></td><td>Summary + homework</td><td>5 min</td><td>All levels</td></tr>
+    </table>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">CBSE Lesson Bank</div>
+      <div class="lesson-item"><div class="lesson-num">1</div><div class="lesson-info"><div class="lesson-title">Present tense — ER verbs (Gr 7)</div><div class="lesson-meta">60 min · Conjugation drills</div></div><span class="lesson-tag tag-done">Done</span></div>
+      <div class="lesson-item"><div class="lesson-num">2</div><div class="lesson-info"><div class="lesson-title">Passé composé with avoir (Gr 9)</div><div class="lesson-meta">60 min · Past tense formation</div></div><span class="lesson-tag tag-done">Done</span></div>
+      <div class="lesson-item"><div class="lesson-num">3</div><div class="lesson-info"><div class="lesson-title">Board exam composition (Gr 10)</div><div class="lesson-meta">60 min · Letter + essay format</div></div><span class="lesson-tag tag-upcoming">Upcoming</span></div>
+      <div class="lesson-item"><div class="lesson-num">4</div><div class="lesson-info"><div class="lesson-title">Reading comprehension strategies (Gr 12)</div><div class="lesson-meta">75 min · Board paper practice</div></div><span class="lesson-tag tag-draft">Draft</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Cambridge + IBDP Lesson Bank</div>
+      <div class="lesson-item"><div class="lesson-num">1</div><div class="lesson-info"><div class="lesson-title">Formal letter writing (Cambridge Gr 8)</div><div class="lesson-meta">60 min · IGCSE format</div></div><span class="lesson-tag tag-done">Done</span></div>
+      <div class="lesson-item"><div class="lesson-num">2</div><div class="lesson-info"><div class="lesson-title">IGCSE reading paper strategy</div><div class="lesson-meta">75 min · Paper 1 technique</div></div><span class="lesson-tag tag-upcoming">Upcoming</span></div>
+      <div class="lesson-item"><div class="lesson-num">3</div><div class="lesson-info"><div class="lesson-title">IBDP Paper 1 — unseen text analysis</div><div class="lesson-meta">90 min · Literary commentary</div></div><span class="lesson-tag tag-upcoming">Upcoming</span></div>
+      <div class="lesson-item"><div class="lesson-num">4</div><div class="lesson-info"><div class="lesson-title">IB Individual Oral — stimulus approach</div><div class="lesson-meta">60 min · IO methodology</div></div><span class="lesson-tag tag-draft">Draft</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     SCHEDULE
+════════════════════════════════ -->
+<div class="page" id="page-calendar">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Class <span>Schedule</span></div>
+      <div class="page-subtitle">May 2026 · All curricula</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-session')">+ Schedule Class</button>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">May 2026</div>
+      <div class="calendar-grid">
+        <div class="cal-day-header">Su</div><div class="cal-day-header">Mo</div><div class="cal-day-header">Tu</div><div class="cal-day-header">We</div><div class="cal-day-header">Th</div><div class="cal-day-header">Fr</div><div class="cal-day-header">Sa</div>
+        <div class="cal-day today">3</div>
+        <div class="cal-day has-class">4<div class="cal-dot dot-cbse"></div><div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">5<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">6<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">7<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">8<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">9<div class="cal-dot dot-blue"></div><div class="cal-dot dot-cbse"></div></div>
+        <div class="cal-day">10</div>
+        <div class="cal-day has-class">11<div class="cal-dot dot-cbse"></div><div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">12<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">13<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">14<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">15<div class="cal-dot dot-rouge"></div></div>
+        <div class="cal-day has-class">16<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day">17</div>
+        <div class="cal-day has-class">18<div class="cal-dot dot-cbse"></div></div>
+        <div class="cal-day has-class">19<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">20<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">21<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day has-class">22<div class="cal-dot dot-rouge"></div></div>
+        <div class="cal-day has-class">23<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day">24</div>
+        <div class="cal-day has-class">25<div class="cal-dot dot-cbse"></div></div>
+        <div class="cal-day has-class">26<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day">27</div>
+        <div class="cal-day has-class">28<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day">29</div>
+        <div class="cal-day has-class">30<div class="cal-dot dot-blue"></div></div>
+        <div class="cal-day">31</div>
+      </div>
+      <div style="display:flex;gap:14px;margin-top:14px;font-size:0.72rem;color:var(--ink2);flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--french-blue-light);margin-right:4px;"></span>A1/A2 / Cambridge</span>
+        <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cbse);margin-right:4px;"></span>CBSE</span>
+        <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--rouge);margin-right:4px;"></span>Exam / Assessment</span>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">Weekly Master Schedule</div>
+        <table>
+          <tr><th>Day</th><th>Student</th><th>Curriculum</th><th>Time</th></tr>
+          <tr><td>Monday</td><td>Rohan K.</td><td><span class="curr-badge curr-cbse">CBSE</span></td><td>3:30 PM</td></tr>
+          <tr><td>Monday</td><td>Priya R.</td><td><span class="curr-badge curr-a1">A1</span></td><td>5:00 PM</td></tr>
+          <tr><td>Tuesday</td><td>Aarav T.</td><td><span class="curr-badge curr-cbse">CBSE</span></td><td>4:00 PM</td></tr>
+          <tr><td>Tuesday</td><td>Ananya S.</td><td><span class="curr-badge curr-cambridge">Cambridge</span></td><td>4:00 PM</td></tr>
+          <tr><td>Wednesday</td><td>Sara M.</td><td><span class="curr-badge curr-cambridge">Cambridge</span></td><td>3:00 PM</td></tr>
+          <tr><td>Wednesday</td><td>Kiran P.</td><td><span class="curr-badge curr-a1">A1</span></td><td>6:00 PM</td></tr>
+          <tr><td>Wednesday</td><td>Ishaan M.</td><td><span class="curr-badge curr-ibdp">IBDP</span></td><td>6:00 PM</td></tr>
+          <tr><td>Thursday</td><td>Diya R.</td><td><span class="curr-badge curr-cbse">CBSE</span></td><td>4:30 PM</td></tr>
+          <tr><td>Thursday</td><td>Ravi C.</td><td><span class="curr-badge curr-cambridge">Cambridge</span></td><td>5:00 PM</td></tr>
+          <tr><td>Thursday</td><td>Arjun M.</td><td><span class="curr-badge curr-a1">A1</span></td><td>5:30 PM</td></tr>
+          <tr><td>Friday</td><td>Neha P.</td><td><span class="curr-badge curr-cbse">CBSE</span></td><td>5:00 PM</td></tr>
+          <tr><td>Friday</td><td>Zara F.</td><td><span class="curr-badge curr-ibdp">IBDP</span></td><td>4:00 PM</td></tr>
+          <tr><td>Saturday</td><td>Kabir S.</td><td><span class="curr-badge curr-cbse">CBSE</span></td><td>9:00 AM</td></tr>
+          <tr><td>Saturday</td><td>Meera S.</td><td><span class="curr-badge curr-a1">A1</span></td><td>10:00 AM</td></tr>
+          <tr><td>Saturday</td><td>Layla H.</td><td><span class="curr-badge curr-cambridge">Cambridge</span></td><td>11:00 AM</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     EXAMS
+════════════════════════════════ -->
+<div class="page" id="page-exams">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Exams & <span>Assessments</span></div>
+      <div class="page-subtitle">All curricula · upcoming + completed</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-exam')">+ Add Exam</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Upcoming Exams — May / June 2026</div>
+    <table>
+      <tr><th>Date</th><th>Student</th><th>Curriculum</th><th>Exam / Assessment</th><th>Prep Status</th></tr>
+      <tr><td><strong>May 15</strong></td><td>Rohan K.</td><td><span class="curr-badge curr-cbse">CBSE</span></td><td>Board Mock — French Paper</td><td><span class="skill-badge badge-good">Ready</span></td></tr>
+      <tr><td><strong>May 18</strong></td><td>Ishaan M.</td><td><span class="curr-badge curr-ibdp">IBDP</span></td><td>Paper 1 Practice — Writing</td><td><span class="skill-badge badge-working">In prep</span></td></tr>
+      <tr><td><strong>May 22</strong></td><td>Layla H.</td><td><span class="curr-badge curr-cambridge">Cambridge</span></td><td>IGCSE Mock — Full paper</td><td><span class="skill-badge badge-good">Ready</span></td></tr>
+      <tr><td><strong>May 24</strong></td><td>Meera S.</td><td><span class="curr-badge curr-a1">A1</span></td><td>A1 Module 1 Assessment</td><td><span class="skill-badge badge-good">Ready</span></td></tr>
+      <tr><td><strong>May 25</strong></td><td>Zara F.</td><td><span class="curr-badge curr-ibdp">IBDP</span></td><td>HL Essay Draft Review</td><td><span class="skill-badge badge-working">In progress</span></td></tr>
+      <tr><td><strong>June 3</strong></td><td>Ishaan + Zara</td><td><span class="curr-badge curr-ibdp">IBDP</span></td><td>Paper 2 Mock — Reading + Listening</td><td><span class="skill-badge badge-needs">Not started</span></td></tr>
+      <tr><td><strong>June 10</strong></td><td>Zara F.</td><td><span class="curr-badge curr-ibdp">IBDP</span></td><td>Individual Oral Practice (recorded)</td><td><span class="skill-badge badge-needs">Upcoming</span></td></tr>
+    </table>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Exam Prep Checklist — CBSE Board (Rohan)</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:0.82rem;">
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox" checked> All tenses revised (present, past, future)</label>
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox" checked> Comprehension passage practice — 3 full papers</label>
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox"> Letter writing — formal + informal format</label>
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox"> Essay writing — 200 words timed</label>
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox"> Full mock paper under exam conditions</label>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Exam Prep Checklist — IBDP HL (Zara)</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:0.82rem;">
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox" checked> Paper 1 technique — argument structure</label>
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox"> HL Essay first draft submitted</label>
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox"> Le Petit Prince — key quotes annotated</label>
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox"> Paper 2 listening — 3 practice sets</label>
+        <label style="text-transform:none;font-size:0.82rem;display:flex;align-items:center;gap:8px;"><input type="checkbox"> Individual Oral — 2 recorded mock sessions</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     QUIZ BANK
+════════════════════════════════ -->
+<div class="page" id="page-quizzes">
+  <div class="page-header">
+    <div><div class="page-title">Quiz <span>Bank</span></div><div class="page-subtitle">All curricula · interactive practice</div></div>
+    <button class="btn btn-primary" onclick="openModal('add-quiz')">+ New Question</button>
+  </div>
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">All</button>
+    <button class="filter-btn" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">A1/A2</button>
+    <button class="filter-btn" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">CBSE Gr 7–10</button>
+    <button class="filter-btn" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">Cambridge IGCSE</button>
+    <button class="filter-btn" onclick="this.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">IBDP</button>
+  </div>
+  <div class="quiz-card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center;"><span class="curr-badge curr-a1">A1</span><span style="font-size:0.72rem;color:var(--ink2);">Vocabulary · Leçon 1</span></div>
+    <div class="quiz-q">1. "Bonjour" is used to say:</div>
+    <div class="quiz-options">
+      <div class="quiz-option" onclick="answerQuiz(this,false)">Goodbye</div>
+      <div class="quiz-option" onclick="answerQuiz(this,true)">Good morning / Hello</div>
+      <div class="quiz-option" onclick="answerQuiz(this,false)">Good night</div>
+      <div class="quiz-option" onclick="answerQuiz(this,false)">Thank you</div>
+    </div>
+  </div>
+  <div class="quiz-card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center;"><span class="curr-badge curr-cbse">CBSE Gr 9</span><span style="font-size:0.72rem;color:var(--ink2);">Grammar · Passé composé</span></div>
+    <div class="quiz-q">2. Choose the correct passé composé of "manger" (to eat) — je ___</div>
+    <div class="quiz-options">
+      <div class="quiz-option" onclick="answerQuiz(this,false)">j'ai mangais</div>
+      <div class="quiz-option" onclick="answerQuiz(this,true)">j'ai mangé</div>
+      <div class="quiz-option" onclick="answerQuiz(this,false)">je mangé</div>
+      <div class="quiz-option" onclick="answerQuiz(this,false)">j'avais mangé</div>
+    </div>
+  </div>
+  <div class="quiz-card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center;"><span class="curr-badge curr-cambridge">IGCSE</span><span style="font-size:0.72rem;color:var(--ink2);">Writing · Formal register</span></div>
+    <div class="quiz-q">3. Which opening is correct for a formal French letter?</div>
+    <div class="quiz-options">
+      <div class="quiz-option" onclick="answerQuiz(this,false)">Salut!</div>
+      <div class="quiz-option" onclick="answerQuiz(this,true)">Monsieur / Madame,</div>
+      <div class="quiz-option" onclick="answerQuiz(this,false)">Bonjour ami,</div>
+      <div class="quiz-option" onclick="answerQuiz(this,false)">Cher professeur!</div>
+    </div>
+  </div>
+  <div class="quiz-card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center;"><span class="curr-badge curr-ibdp">IBDP SL/HL</span><span style="font-size:0.72rem;color:var(--ink2);">Literary analysis</span></div>
+    <div class="quiz-q">4. In IB French, Paper 1 assesses primarily:</div>
+    <div class="quiz-options">
+      <div class="quiz-option" onclick="answerQuiz(this,false)">Oral presentation only</div>
+      <div class="quiz-option" onclick="answerQuiz(this,true)">Productive skills — written tasks</div>
+      <div class="quiz-option" onclick="answerQuiz(this,false)">Grammar translation</div>
+      <div class="quiz-option" onclick="answerQuiz(this,false)">Listening comprehension</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     PARENT COMMS
+════════════════════════════════ -->
+<div class="page" id="page-comms">
+  <div class="page-header">
+    <div><div class="page-title">Parent <span>Communication</span></div><div class="page-subtitle">WhatsApp & email templates · all curricula</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="comm-template">
+      <div class="comm-header"><span class="comm-type">📅 Session Reminder</span><button class="btn btn-ghost btn-sm" onclick="copyTemplate('reminder')">Copy</button></div>
+      <div class="comm-body" id="t-reminder">Bonjour <span class="fill-blank">[Parent Name]</span>,
+
+Reminder: <span class="fill-blank">[Student]</span>'s French class (<span class="fill-blank">[CBSE/Cambridge/IBDP/A1]</span>) is on <span class="fill-blank">[Day, Date]</span> at <span class="fill-blank">[Time]</span>.
+
+Please ensure they have their <span class="fill-blank">[textbook/notebook/device]</span> ready.
+
+À bientôt,
+Sailaja</div>
+    </div>
+    <div class="comm-template">
+      <div class="comm-header"><span class="comm-type">📊 Monthly Progress</span><button class="btn btn-ghost btn-sm" onclick="copyTemplate('progress')">Copy</button></div>
+      <div class="comm-body" id="t-progress">Bonjour <span class="fill-blank">[Parent Name]</span>,
+
+<span class="fill-blank">[Student]</span>'s French progress — <span class="fill-blank">[Month]</span>:
+
+📚 Curriculum: <span class="fill-blank">[CBSE Gr X / Cambridge / IBDP SL-HL / A1]</span>
+✅ Topics covered: <span class="fill-blank">[Topics]</span>
+⭐ Strengths: <span class="fill-blank">[Strengths]</span>
+📝 Needs practice: <span class="fill-blank">[Areas]</span>
+🎯 Next focus: <span class="fill-blank">[Next topic]</span>
+
+Overall: <span class="fill-blank">[Assessment]</span>
+
+Merci,
+Sailaja</div>
+    </div>
+    <div class="comm-template">
+      <div class="comm-header"><span class="comm-type">📝 Exam Preparation Update</span><button class="btn btn-ghost btn-sm" onclick="copyTemplate('examprep')">Copy</button></div>
+      <div class="comm-body" id="t-examprep">Bonjour <span class="fill-blank">[Parent Name]</span>,
+
+With <span class="fill-blank">[Exam Name]</span> on <span class="fill-blank">[Date]</span>, here is <span class="fill-blank">[Student]</span>'s readiness:
+
+✅ Completed: <span class="fill-blank">[Topics done]</span>
+⏳ In progress: <span class="fill-blank">[Topics ongoing]</span>
+📌 Still to cover: <span class="fill-blank">[Remaining]</span>
+
+Please encourage daily revision of 20–30 minutes.
+
+Bon courage,
+Sailaja</div>
+    </div>
+    <div class="comm-template">
+      <div class="comm-header"><span class="comm-type">🎉 Milestone / Achievement</span><button class="btn btn-ghost btn-sm" onclick="copyTemplate('milestone')">Copy</button></div>
+      <div class="comm-body" id="t-milestone">Bonjour <span class="fill-blank">[Parent Name]</span>,
+
+Wonderful news — <span class="fill-blank">[Student]</span> has achieved <span class="fill-blank">[milestone]</span> today!
+
+They showed excellent progress in <span class="fill-blank">[skill/topic]</span>. 
+
+We will move to <span class="fill-blank">[next topic]</span> in our upcoming sessions.
+
+Félicitations!
+Sailaja</div>
+    </div>
+    <div class="comm-template">
+      <div class="comm-header"><span class="comm-type">❌ Cancellation / Reschedule</span><button class="btn btn-ghost btn-sm" onclick="copyTemplate('cancel')">Copy</button></div>
+      <div class="comm-body" id="t-cancel">Bonjour <span class="fill-blank">[Parent Name]</span>,
+
+I need to reschedule <span class="fill-blank">[Student]</span>'s class on <span class="fill-blank">[Date]</span>.
+
+New slot: <span class="fill-blank">[New Date & Time]</span>
+
+Apologies for any inconvenience.
+
+Merci de votre compréhension,
+Sailaja</div>
+    </div>
+    <div class="comm-template">
+      <div class="comm-header"><span class="comm-type">💰 Fee Reminder</span><button class="btn btn-ghost btn-sm" onclick="copyTemplate('fee')">Copy</button></div>
+      <div class="comm-body" id="t-fee">Bonjour <span class="fill-blank">[Parent Name]</span>,
+
+Gentle reminder — <span class="fill-blank">[Month]</span> fees for <span class="fill-blank">[Student]</span>'s French tuition:
+
+Amount: ₹<span class="fill-blank">[Amount]</span>
+Due by: <span class="fill-blank">[Date]</span>
+UPI: <span class="fill-blank">[UPI ID]</span>
+
+Merci beaucoup,
+Sailaja</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     RESOURCES
+════════════════════════════════ -->
+<div class="page" id="page-resources">
+  <div class="page-header">
+    <div><div class="page-title">French <span>Resources</span></div><div class="page-subtitle">All curricula · reference library</div></div>
+  </div>
+  <div class="three-col">
+    <div class="card">
+      <div class="card-title"><span class="curr-badge curr-cbse" style="margin-right:6px;">CBSE</span> Resources</div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">CBSE French textbooks Gr 3–12</div><div class="lesson-meta">Apprenons le Français series</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">CBSE Board past papers</div><div class="lesson-meta">2019–2024 question banks</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">CBSE marking schemes</div><div class="lesson-meta">Gr 10 + 12 official</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">Grammar workbooks</div><div class="lesson-meta">Tense drills + exercises</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="curr-badge curr-cambridge" style="margin-right:6px;">Cambridge</span> Resources</div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">Cambridge IGCSE French (0520)</div><div class="lesson-meta">Syllabus + specimen papers</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">Checkpoint French guide</div><div class="lesson-meta">Gr 7–8 progression</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">IGCSE past papers 2018–2024</div><div class="lesson-meta">Papers 1, 2, 3, 4</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">Cambridge Primary French</div><div class="lesson-meta">Gr 3–5 activity resources</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="curr-badge curr-ibdp" style="margin-right:6px;">IBDP</span> Resources</div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">IB French B guide (2023)</div><div class="lesson-meta">SL + HL syllabus official</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">Le Petit Prince — annotated</div><div class="lesson-meta">HL literary text</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">IB Paper 1 writing frames</div><div class="lesson-meta">Essay structures by text type</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">IO preparation guide</div><div class="lesson-meta">Individual oral methodology</div></div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:4px;">
+    <div class="card-title">Shared Digital Resources — All Levels</div>
+    <div class="three-col" style="gap:12px;">
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">TV5Monde Apprendre</div><div class="lesson-meta">Free videos A1–C2</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">RFI Savoirs</div><div class="lesson-meta">Listening exercises</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">Larousse Dictionnaire</div><div class="lesson-meta">French-English reference</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">Alliance Française HYD</div><div class="lesson-meta">DELF exam resources</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">Conjuguemos</div><div class="lesson-meta">Verb conjugation drills</div></div></div>
+      <div class="lesson-item" style="padding:8px 12px;"><div class="lesson-info"><div class="lesson-title" style="font-size:0.82rem;">Quizlet — French decks</div><div class="lesson-meta">Shared with students</div></div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- ── MODALS ── -->
+<div class="modal-bg" id="modal-add-student">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-student')">✕</button>
+    <h3>Add New Student</h3>
+    <p class="modal-sub">Fill in details to create the student profile.</p>
+    <div class="form-row">
+      <div class="form-group"><label>Student Name</label><input type="text" placeholder="Full name"></div>
+      <div class="form-group"><label>Age / Grade</label><input type="text" placeholder="e.g. 14 / Grade 9"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Curriculum</label><select><option>A1/A2 Language Tuition</option><option>CBSE</option><option>Cambridge Primary (Gr 3–5)</option><option>Cambridge Lower Secondary (Gr 6–8)</option><option>Cambridge IGCSE (Gr 9–10)</option><option>IBDP SL</option><option>IBDP HL</option></select></div>
+      <div class="form-group"><label>Grade / Level</label><input type="text" placeholder="e.g. Grade 10 / A1 Week 1"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Class Day</label><select><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+      <div class="form-group"><label>Time & Duration</label><input type="text" placeholder="e.g. 4:30 PM · 60 min"></div>
+    </div>
+    <div class="form-group"><label>Parent Name & WhatsApp</label><input type="text" placeholder="e.g. Mrs. Sharma — 98765XXXXX"></div>
+    <div class="form-group"><label>Focus / Notes</label><textarea placeholder="Board exam prep, weak areas, special needs..."></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('add-student')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAndClose('add-student','Student added!')">Add Student</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-add-session">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-session')">✕</button>
+    <h3>Log a Session</h3>
+    <p class="modal-sub">Record what was covered today.</p>
+    <div class="form-row">
+      <div class="form-group"><label>Student</label><select><option>Aarav T. — CBSE Gr 4</option><option>Diya R. — CBSE Gr 7</option><option>Rohan K. — CBSE Gr 10</option><option>Neha P. — CBSE Gr 9</option><option>Kabir S. — CBSE Gr 12</option><option>Sara M. — Cambridge Gr 5</option><option>Ananya S. — Cambridge Gr 8</option><option>Ravi C. — Cambridge Gr 7</option><option>Layla H. — IGCSE Gr 10</option><option>Ishaan M. — IBDP SL</option><option>Zara F. — IBDP HL</option><option>Priya R. — A1</option><option>Arjun M. — A1</option><option>Meera S. — A1→A2</option><option>Kiran P. — A1</option></select></div>
+      <div class="form-group"><label>Date</label><input type="date"></div>
+    </div>
+    <div class="form-group"><label>Topic Covered</label><input type="text" placeholder="e.g. Passé composé — irregular verbs"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Performance</label><select><option>Excellent</option><option>Good — on track</option><option>Needs more practice</option><option>Struggling — needs attention</option></select></div>
+      <div class="form-group"><label>Homework Given</label><input type="text" placeholder="e.g. Exercises p.34–35"></div>
+    </div>
+    <div class="form-group"><label>Session Notes</label><textarea placeholder="Key observations, what to revisit, next session plan..."></textarea></div>
+    <div class="form-group"><label>Parent Update?</label><select><option>No — routine class</option><option>Yes — send progress note</option><option>Yes — flag concern</option><option>Yes — exam reminder</option></select></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('add-session')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAndClose('add-session','Session logged!')">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-add-lesson">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-lesson')">✕</button>
+    <h3>New Lesson Plan</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Lesson Title</label><input type="text" placeholder="e.g. Passé composé — avoir verbs"></div>
+      <div class="form-group"><label>Curriculum</label><select><option>A1/A2</option><option>CBSE</option><option>Cambridge</option><option>IBDP</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Grade / Level</label><input type="text" placeholder="e.g. Grade 9 / IBDP SL"></div>
+      <div class="form-group"><label>Duration</label><select><option>45 minutes</option><option>60 minutes</option><option>75 minutes</option><option>90 minutes</option></select></div>
+    </div>
+    <div class="form-group"><label>Learning Objectives</label><textarea placeholder="By the end of this lesson, the student will be able to..."></textarea></div>
+    <div class="form-group"><label>Activities & Materials</label><textarea placeholder="Warm-up, teach, practice, production, wrap-up..."></textarea></div>
+    <div class="form-group"><label>Homework</label><input type="text" placeholder="e.g. Complete exercises + write 10 sentences"></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('add-lesson')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAndClose('add-lesson','Lesson plan saved!')">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-add-exam">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-exam')">✕</button>
+    <h3>Add Exam / Assessment</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Student</label><select><option>All CBSE</option><option>All Cambridge</option><option>All IBDP</option><option>Rohan K.</option><option>Layla H.</option><option>Ishaan M.</option><option>Zara F.</option><option>Meera S.</option></select></div>
+      <div class="form-group"><label>Exam Date</label><input type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Exam / Assessment Name</label><input type="text" placeholder="e.g. CBSE Board Mock Paper"></div>
+      <div class="form-group"><label>Curriculum</label><select><option>CBSE</option><option>Cambridge IGCSE</option><option>IBDP</option><option>A1/A2 Assessment</option></select></div>
+    </div>
+    <div class="form-group"><label>Prep Status</label><select><option>Not started</option><option>In preparation</option><option>On track / Ready</option></select></div>
+    <div class="form-group"><label>Notes</label><textarea placeholder="Topics to cover before exam, focus areas..."></textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('add-exam')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAndClose('add-exam','Exam added!')">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-add-quiz">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-quiz')">✕</button>
+    <h3>Add Quiz Question</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Curriculum</label><select><option>A1/A2</option><option>CBSE</option><option>Cambridge</option><option>IBDP</option></select></div>
+      <div class="form-group"><label>Category</label><select><option>Vocabulary</option><option>Grammar</option><option>Reading</option><option>Writing</option><option>Literary analysis</option></select></div>
+    </div>
+    <div class="form-group"><label>Question</label><textarea placeholder="Enter the question..."></textarea></div>
+    <div class="form-row"><div class="form-group"><label>Option A</label><input type="text"></div><div class="form-group"><label>Option B</label><input type="text"></div></div>
+    <div class="form-row"><div class="form-group"><label>Option C</label><input type="text"></div><div class="form-group"><label>Option D</label><input type="text"></div></div>
+    <div class="form-group"><label>Correct Answer</label><select><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('add-quiz')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAndClose('add-quiz','Question added!')">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-view-student">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('view-student')">✕</button>
+    <h3>Student Profile</h3>
+    <p class="modal-sub">Click any row in the student table to view full details here. Replace with real student data when setting up.</p>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('view-student')">Close</button>
+      <button class="btn btn-primary" onclick="closeModal('view-student');openModal('add-session')">Log Session</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
+  });
+  window.scrollTo(0,0);
+}
+
+function openModal(id) { document.getElementById('modal-' + id).classList.add('open'); }
+function closeModal(id) { document.getElementById('modal-' + id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function saveAndClose(id, msg) { closeModal(id); showToast('✓ ' + msg); }
+
+function answerQuiz(el, correct) {
+  const siblings = el.parentElement.querySelectorAll('.quiz-option');
+  siblings.forEach(s => { s.classList.remove('correct','wrong'); s.style.pointerEvents = 'none'; });
+  el.classList.add(correct ? 'correct' : 'wrong');
+  if (!correct) siblings.forEach(s => { if (s !== el) s.classList.add('correct'); });
+  showToast(correct ? '✓ Correct! Très bien!' : '✗ Not quite — see the correct answer.');
+}
+
+function copyTemplate(id) {
+  const el = document.getElementById('t-' + id);
+  navigator.clipboard.writeText(el.innerText).then(() => showToast('✓ Template copied!')).catch(() => showToast('Select and copy manually.'));
+}
+
+function filterStudents(filter, btn) {
+  btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const rows = document.querySelectorAll('#students-table tbody tr');
+  rows.forEach(row => {
+    const curr = row.dataset.curr;
+    const band = row.dataset.band;
+    const show = filter === 'all' || curr === filter || band === filter ||
+      (filter === 'primary' && band === 'primary') ||
+      (filter === 'middle' && band === 'middle') ||
+      (filter === 'secondary' && band === 'secondary') ||
+      (filter === 'senior' && band === 'senior');
+    row.style.display = show ? '' : 'none';
+  });
+  const visible = [...rows].filter(r => r.style.display !== 'none').length;
+  showToast('Showing ' + visible + ' student' + (visible !== 1 ? 's' : ''));
+}
+
+function showTab(prefix, tab, btn) {
+  document.querySelectorAll('.' + prefix + '-tab').forEach(t => t.style.display = 'none');
+  document.getElementById(prefix + '-' + tab).style.display = '';
+  btn.closest('.tab-bar').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

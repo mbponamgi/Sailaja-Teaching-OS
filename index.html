@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sailaja's Teaching OS — French</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇫🇷</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script src="tweaks-panel.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -1455,26 +1455,26 @@ Sailaja</div>
     <div class="modal-title">Add New Student</div>
     <div class="modal-sub">Fill in details to create the student profile.</div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Student Name</label><input class="form-control" type="text" placeholder="Full name"></div>
+      <div class="form-group"><label class="form-label">Student Name</label><input id="new-student-name" class="form-control" type="text" placeholder="Full name"></div>
       <div class="form-group"><label class="form-label">Age / Grade</label><input class="form-control" type="text" placeholder="e.g. 14 / Grade 9"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Curriculum</label>
-        <select class="form-control"><option>A1/A2 Language Tuition</option><option>CBSE</option><option>Cambridge Primary (Gr 3–5)</option><option>Cambridge Lower Secondary (Gr 6–8)</option><option>Cambridge IGCSE (Gr 9–10)</option><option>IBDP SL</option><option>IBDP HL</option></select>
+        <select id="new-student-curr" class="form-control"><option>A1/A2 Language Tuition</option><option>CBSE</option><option>Cambridge Primary (Gr 3–5)</option><option>Cambridge Lower Secondary (Gr 6–8)</option><option>Cambridge IGCSE (Gr 9–10)</option><option>IBDP SL</option><option>IBDP HL</option></select>
       </div>
-      <div class="form-group"><label class="form-label">Level</label><input class="form-control" type="text" placeholder="e.g. Grade 10 / A1 Week 1"></div>
+      <div class="form-group"><label class="form-label">Level</label><input id="new-student-level" class="form-control" type="text" placeholder="e.g. Grade 10 / A1 Week 1"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Class Day</label>
-        <select class="form-control"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option></select>
+        <select id="new-student-day" class="form-control"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option></select>
       </div>
-      <div class="form-group"><label class="form-label">Time & Duration</label><input class="form-control" type="text" placeholder="e.g. 4:30 PM · 60 min"></div>
+      <div class="form-group"><label class="form-label">Time & Duration</label><input id="new-student-time" class="form-control" type="text" placeholder="e.g. 4:30 PM · 60 min"></div>
     </div>
-    <div class="form-group"><label class="form-label">Parent Name & WhatsApp</label><input class="form-control" type="text" placeholder="e.g. Mrs. Sharma — 98765XXXXX"></div>
-    <div class="form-group"><label class="form-label">Focus / Notes</label><textarea class="form-control" placeholder="Board exam prep, weak areas, special needs..."></textarea></div>
+    <div class="form-group"><label class="form-label">Parent Name & WhatsApp</label><input id="new-student-parent" class="form-control" type="text" placeholder="e.g. Mrs. Sharma — 98765XXXXX"></div>
+    <div class="form-group"><label class="form-label">Focus / Notes</label><textarea id="new-student-focus" class="form-control" placeholder="Board exam prep, weak areas, special needs..."></textarea></div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-student')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAndClose('add-student','Student added successfully!')">Add Student</button>
+      <button class="btn btn-primary" onclick="addNewStudent()">Add Student</button>
     </div>
   </div>
 </div>
@@ -1877,6 +1877,111 @@ function mountTweaks() {
   ReactDOM.createRoot(el).render(<TweaksApp />);
 }
 mountTweaks();
+
+// --- LOCAL DATABASE LOGIC ---
+const DB_KEY = 'teach_os_students';
+
+function initDatabase() {
+  if (!localStorage.getItem(DB_KEY)) {
+    const tbody = document.querySelector('#students-table tbody');
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    const students = [];
+    rows.forEach(row => {
+      const nameEl = row.querySelector('.student-name');
+      if (!nameEl) return;
+      const name = nameEl.innerText;
+      const parent = row.querySelector('.student-parent').innerText;
+      const currBadge = row.querySelector('td:nth-child(2) .badge').innerText;
+      const levelBadge = row.querySelector('td:nth-child(3) .badge').innerText;
+      const focus = row.querySelector('td:nth-child(4)').innerText;
+      const schedule = row.querySelector('td:nth-child(5)').innerText;
+      const progress = row.querySelector('.mini-pct').innerText;
+      
+      students.push({ id: Date.now() + Math.random(), name, parent, currBadge, levelBadge, focus, schedule, progress });
+    });
+    localStorage.setItem(DB_KEY, JSON.stringify(students));
+  }
+}
+
+function renderStudents() {
+  const tbody = document.querySelector('#students-table tbody');
+  if (!tbody) return;
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  tbody.innerHTML = '';
+  
+  students.forEach(s => {
+    let currAttr = 'a1';
+    let badgeClass = 'badge-primary';
+    let progressClass = 'french-blue';
+    const currLower = s.currBadge.toLowerCase();
+    
+    if (currLower.includes('cbse')) { currAttr = 'cbse'; progressClass = 'cbse'; badgeClass = 'badge-cbse'; }
+    else if (currLower.includes('cambridge')) { currAttr = 'cambridge'; progressClass = 'cambridge'; badgeClass = 'badge-cam'; }
+    else if (currLower.includes('ibdp')) { currAttr = 'ibdp'; progressClass = 'ibdp'; badgeClass = 'badge-ibdp'; }
+    else { badgeClass = 'badge-a1'; }
+    
+    let progressVal = parseInt(s.progress) || 0;
+    
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-curr', currAttr);
+    tr.setAttribute('data-band', 'primary'); 
+    tr.onclick = () => openModal('view-student');
+    
+    tr.innerHTML = `
+      <td><span class="student-name">${s.name}</span><span class="student-parent">${s.parent}</span></td>
+      <td><span class="badge ${badgeClass}">${s.currBadge}</span></td>
+      <td><span class="badge badge-primary">${s.levelBadge}</span></td>
+      <td>${s.focus}</td>
+      <td>${s.schedule}</td>
+      <td><div class="mini-prog"><div class="mini-track"><div class="mini-fill" style="width:${progressVal}%;background:var(--${progressClass})"></div></div><span class="mini-pct">${progressVal}%</span></div></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function addNewStudent() {
+  const name = document.getElementById('new-student-name').value;
+  if (!name) return alert('Please enter a student name.');
+  
+  const curr = document.getElementById('new-student-curr').value;
+  const level = document.getElementById('new-student-level').value || 'Grade N/A';
+  const day = document.getElementById('new-student-day').value;
+  const time = document.getElementById('new-student-time').value;
+  const parent = document.getElementById('new-student-parent').value || 'Parent Info N/A';
+  const focus = document.getElementById('new-student-focus').value || 'General';
+  
+  const newStudent = {
+    id: Date.now(),
+    name: name,
+    parent: parent,
+    currBadge: curr.split(' ')[0],
+    levelBadge: level,
+    focus: focus,
+    schedule: day.substring(0,3) + ' · ' + time,
+    progress: '0%'
+  };
+  
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  students.unshift(newStudent);
+  localStorage.setItem(DB_KEY, JSON.stringify(students));
+  
+  renderStudents();
+  
+  document.getElementById('new-student-name').value = '';
+  document.getElementById('new-student-level').value = '';
+  document.getElementById('new-student-time').value = '';
+  document.getElementById('new-student-parent').value = '';
+  document.getElementById('new-student-focus').value = '';
+  
+  saveAndClose('add-student', 'Student added successfully!');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initDatabase();
+  renderStudents();
+});
 </script>
 </body>
 </html>
