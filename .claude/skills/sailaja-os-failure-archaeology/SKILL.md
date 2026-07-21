@@ -69,10 +69,12 @@ species of failure: intention committed as fact, never checked in a browser.
    prototype" framing (`sailaja-os-change-control`) is itself an inference,
    not a sourced fact — flagged here so a future session doesn't upgrade the
    inference to a certainty by repetition.
-2. Everything in `sailaja-os-frontier-and-method` Items 2-4 (offline-complete
-   vendoring, fees ledger, backup automation) and Item 5 (hardcoded counts,
-   lesson/exam/quiz persistence) — unaffected by the Incident 1/2 fix,
-   still genuinely not started.
+2. **Update, 2026-07-21: Items 2 and 4 shipped** (offline-complete vendoring,
+   backup automation) — see `sailaja-os-frontier-and-method`. Still
+   genuinely not started, unaffected by the Incident 1/2 fix: Item 3 (fees
+   ledger, needs owner sign-off) and Item 5's remaining nice-to-haves
+   (hardcoded nav-badge counts, static "Recent Sessions" cards) — the
+   lesson/exam/quiz-persistence part of Item 5 also shipped 2026-07-21.
 
 ---
 

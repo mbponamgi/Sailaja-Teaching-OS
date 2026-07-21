@@ -7,15 +7,17 @@ description: >
   `teach_os_students`/`sailaja-dark` in localStorage; testing the daily-use
   campaign's persistence work (students, sessions, lessons, exams, quiz
   questions); testing the tweaks panel (vanilla JS since 2026-07-21, no
-  React) or offline-completeness (zero external requests, also since
+  React), offline-completeness (zero external requests, also since
+  2026-07-21), or the Backup & Restore export/import feature (also since
   2026-07-21); or whenever "how do I test this" comes up. Encodes the house
   rule (non-negotiable #1 in sailaja-os-change-control): no change ships on
   "looks right" alone — serve the app locally, drive the real UI with
-  headless Playwright, and print PASS/FAIL evidence. Ships six working
+  headless Playwright, and print PASS/FAIL evidence. Ships seven working
   scripts (smoke test, store dumper/seeder, student/session CRUD-and-reload
   regression, lesson/exam/quiz CRUD-and-reload regression, tweaks-panel
-  control-interaction regression, offline-completeness regression) plus the
-  shared plumbing they all use.
+  control-interaction regression, offline-completeness regression,
+  backup-export-restore round-trip regression) plus the shared plumbing they
+  all use.
 ---
 
 # Sailaja OS Browser Verification
@@ -67,11 +69,15 @@ node .claude/skills/sailaja-os-browser-verification/scripts/verify-tweaks-panel.
 # 5. After any change to vendored assets or anything network-adjacent:
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-offline.mjs
 
-# 6. Inspect or seed the persistent test-profile store (no app JS runs):
+# 6. After any change to exportData()/handleRestoreFile() or the Backup &
+#    Restore page:
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-backup.mjs
+
+# 7. Inspect or seed the persistent test-profile store (no app JS runs):
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs /path/to/seed.json
 
-# 7. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
+# 8. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
 #    structure into a throwaway verify-<change>.mjs (scratch dir, never
 #    committed) and adapt the DRIVE/ASSERT section — see "Writing a new
 #    verify script" below.
@@ -118,6 +124,7 @@ Same standard as the sibling FFOS repo (`ffos-browser-verification`), adapted:
 | `verify-content-crud.mjs` | Phase 3(d)'s regression: add a lesson, an exam (linked to a real student), and a quiz question via their real forms, asserts each new store (`teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`) went 0→1 with correct derived fields, the "hidden until non-empty" cards become visible, the dynamic quiz card's `answerQuiz()` click reports correctly, **reloads**, and re-asserts all three. Negative controls: the 4 static quiz cards stay exactly 4, `addNewStudent`/`logSession` unaffected | After any change touching lessons, exams, or quiz questions |
 | `verify-tweaks-panel.mjs` | Interaction regression for the vanilla (no React) tweaks panel rewrite (2026-07-21): activates the panel, drives every control type — toggle, slider, color, text, radio — and asserts each one's real side effect (CSS var change, `.sidebar` width, `.student-parent` visibility, dashboard greeting text), then closes it and asserts DOM cleanup + the `__edit_mode_dismissed` postMessage | After any change to `tweaks-panel.js` or to `mountTweaks()`'s composition in `index.html` |
 | `verify-offline.mjs` | Offline-completeness — the exact success metric `sailaja-os-frontier-and-method` Item 2 states: every non-localhost network route aborted, asserts 0 requests attempted, app still fully functional (students scraped, `addNewStudent` callable, tweaks panel mounts), fonts confirmed loaded via `document.fonts` | After any change to vendored assets (`vendor/fonts/`), `<head>` deps, or anything that could reintroduce an external request |
+| `verify-backup.mjs` | Item 4's stated success metric: export the seeded store, capture the real downloaded file, mutate the store (add a 16th student) AFTER the export, then restore from the file and assert the store snapshots back to exactly the pre-mutation state. Negative controls: a non-JSON file, a valid-JSON-wrong-shape file, and a dismissed confirm dialog each leave the store completely untouched; also asserts the on-load backup-staleness nudge toast fires when no export has ever happened | After any change to `exportData()`, `handleRestoreFile()`, `renderBackupStatus()`, `checkBackupNudge()`, or the Backup & Restore page |
 | `dump-store.mjs` | Uses a **persistent** test-profile context (survives across separate runs) to read, and optionally seed, `teach_os_students` — navigates to a same-origin 404 page (`NO_APP_URL`) so **zero app script runs**, meaning it never triggers `initDatabase()`'s one-shot first-run scrape | Inspecting the store shape; seeding old- or new-shape data for a migration test; preparing fixture state before a behavior-change verify script drives the real UI |
 
 All three were run for real (`smoke.mjs`/`dump-store.mjs` authored
@@ -366,6 +373,34 @@ PASS  no uncaught page errors while offline  (actual: [])
 PASS: 10/10 checks passed (http://localhost:8931/index.html)
 ```
 
+**`verify-backup.mjs`** (real run, 2026-07-21, `sailaja-os-frontier-and-method`
+Item 4's exact "you have a result when..." metric, achieved — full export →
+mutate → restore round-trip, plus three negative controls):
+
+```
+PASS  initDatabase scraped 15 students  (actual: 15)
+PASS  backup nudge toast fires on first load with no prior export  (actual: "⚠ It's been a while since your last backup — visit Backup & Restore.")
+PASS  backup status before any export  (actual: "No backup has been downloaded yet.")
+PASS  backup file version  (actual: 1)
+PASS  backup file has exportedAt  (actual: "string")
+PASS  backup file captured 15 students  (actual: 15)
+PASS  backup file has no session/lesson/exam/quiz keys yet (none written)  (actual: true)
+PASS  teach_os_last_export stamped after export  (actual: "string")
+PASS  backup status updated after export  (actual: "Last backup: 7/21/2026, 2:54:32 PM (today)")
+PASS  student count 15 -> 16 after add  (actual: 16)
+PASS  non-JSON restore attempt leaves store unchanged (still 16)  (actual: 16)
+PASS  wrong-shape restore attempt leaves store unchanged (still 16)  (actual: 16)
+PASS  dismissed-confirm restore leaves store unchanged (still 16)  (actual: 16)
+PASS  dismissed-confirm restore did not add the extra test student twice  (actual: 1)
+PASS  after accepted restore: back to 15 students  (actual: 15)
+PASS  after accepted restore: the post-export addition is gone  (actual: false)
+PASS  after accepted restore: table shows 15 rows  (actual: 15)
+PASS  no console errors across the whole run  (actual: [])
+PASS  no uncaught page errors across the whole run  (actual: [])
+
+PASS: 19/19 checks passed (http://localhost:8931/index.html)
+```
+
 `dump-store.mjs` (fresh test profile, then seeded with the §6 fixture from
 `sailaja-os-data-model-and-migrations`, then re-run unseeded to confirm
 persistence — run pre-fix; the same-origin `NO_APP_URL` mechanism this
@@ -416,9 +451,11 @@ day. The same day, in sequence: the daily-use-campaign Phase 1-3(d) fix
 landed (`smoke.mjs` updated, `verify-crud.mjs`/`verify-content-crud.mjs`
 added), then Item 2 (React removal + font vendoring) landed on top
 (`smoke.mjs` updated again, `verify-tweaks-panel.mjs`/`verify-offline.mjs`
-added) — all as working-tree changes at time of writing; confirm each has
-been committed before trusting its claims blindly. Re-verify the whole
-suite with:
+added), then Item 4 (backup automation) landed on top of that
+(`verify-backup.mjs` added, no changes needed to the other six scripts) —
+all as working-tree changes at time of writing; confirm each has been
+committed before trusting its claims blindly. Re-verify the whole suite
+with:
 
 ```bash
 export PW_PATH=/Users/mponamgi/Documents/Personal-finance-tracker/node_modules
@@ -427,14 +464,15 @@ node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-content-crud.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-tweaks-panel.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-offline.mjs
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-backup.mjs
 ```
 
-Expect `11/11`, `25/25`, `26/26`, `17/17`, `10/10` — everything green means
-persistence (students/sessions/edit-delete/reload-survival), Phase 3(d)
-content, the vanilla tweaks panel, and offline-completeness are all intact.
-If any regress, re-read `sailaja-os-failure-archaeology` Incidents 1 and 2
-before assuming you know the cause — both were counter-intuitive on first
-read.
+Expect `11/11`, `25/25`, `26/26`, `17/17`, `10/10`, `19/19` — everything
+green means persistence (students/sessions/edit-delete/reload-survival),
+Phase 3(d) content, the vanilla tweaks panel, offline-completeness, and the
+backup/restore round-trip are all intact. If any regress, re-read
+`sailaja-os-failure-archaeology` Incidents 1 and 2 before assuming you know
+the cause — both were counter-intuitive on first read.
 
 - `PW_PATH` points at a sibling repo by absolute path — if
   `Personal-finance-tracker` moves or its `node_modules` is pruned, either

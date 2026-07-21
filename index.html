@@ -504,6 +504,9 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <button class="nav-item" onclick="showPage('comms')"><span class="nav-icon">◦</span> Parent Comms</button>
   <button class="nav-item" onclick="showPage('resources')"><span class="nav-icon">◦</span> Resources</button>
 
+  <div class="nav-section">Data</div>
+  <button class="nav-item" onclick="showPage('backup')"><span class="nav-icon">◦</span> Backup &amp; Restore</button>
+
   <div class="sidebar-footer">
     B1 Certified · Alliance Française<br>6 yrs · International School, HYD
   </div>
@@ -1480,6 +1483,32 @@ Sailaja</div>
   </div>
 </div>
 
+<div class="page" id="page-backup">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Backup <em>&amp; Restore</em></div>
+      <div class="page-subtitle">Your data lives only in this browser — download a copy regularly</div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Download a backup</span></div>
+      <p style="font-size:0.82rem;color:var(--ink3);padding:0 14px;">Saves every student, session, lesson plan, exam and quiz question as one file on your computer. Do this every week, or right after adding new students.</p>
+      <div style="padding:0 14px 14px;">
+        <button class="btn btn-primary" onclick="exportData()">⬇ Download Backup</button>
+      </div>
+      <div id="backup-status" style="padding:0 14px 14px;font-size:0.78rem;color:var(--ink3);"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Restore from a backup file</span></div>
+      <p style="font-size:0.82rem;color:var(--ink3);padding:0 14px;"><strong>This replaces everything currently in the app</strong> with what's in the file — use it to recover from a lost or cleared browser, not to merge data. You'll be asked to confirm before anything changes.</p>
+      <div style="padding:0 14px 14px;">
+        <input type="file" accept="application/json" id="restore-file-input" class="form-control" onchange="handleRestoreFile(this)">
+      </div>
+    </div>
+  </div>
+</div>
+
   </div><!-- /content -->
 </main>
 </div><!-- /app -->
@@ -1653,7 +1682,8 @@ const breadcrumbLabels = {
   dashboard: 'Dashboard', students: 'All Students', a1a2: 'A1 / A2',
   cbse: 'CBSE', cambridge: 'Cambridge', ibdp: 'IBDP',
   lessons: 'Lesson Plans', schedule: 'Schedule', exams: 'Exams',
-  quizzes: 'Quiz Bank', comms: 'Parent Comms', resources: 'Resources'
+  quizzes: 'Quiz Bank', comms: 'Parent Comms', resources: 'Resources',
+  backup: 'Backup & Restore'
 };
 
 function showPage(id) {
@@ -2417,6 +2447,104 @@ function renderQuiz() {
   }).join('');
 }
 
+// ── Backup & Restore — sailaja-os-frontier-and-method Item 4.
+// Export shape is versioned ({version, exportedAt, data}) so a future schema
+// change can add a migration step here instead of guessing at raw dumps.
+const BACKUP_VERSION = 1;
+const BACKUP_KEYS = [DB_KEY, SESSIONS_KEY, LESSONS_KEY, EXAMS_KEY, QUIZ_KEY];
+const LAST_EXPORT_KEY = 'teach_os_last_export';
+const BACKUP_NUDGE_DAYS = 30;
+
+function exportData() {
+  const data = {};
+  BACKUP_KEYS.forEach(k => {
+    const raw = localStorage.getItem(k);
+    if (raw !== null) data[k] = JSON.parse(raw);
+  });
+  const exportedAt = new Date().toISOString();
+  const payload = { version: BACKUP_VERSION, exportedAt, data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sailaja-teaching-os-backup-${exportedAt.slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  localStorage.setItem(LAST_EXPORT_KEY, exportedAt);
+  renderBackupStatus();
+  showToast('✓ Backup downloaded.');
+}
+
+// Restore is deliberately all-or-nothing per key found in the file (not a
+// merge) — change-control (c)+(d): a partial/merge restore risks silently
+// duplicating records, which is worse than the clear "this replaces
+// everything" contract stated in the UI.
+function handleRestoreFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try {
+      parsed = JSON.parse(reader.result);
+    } catch (e) {
+      showToast('✗ Restore failed — not a valid backup file.');
+      input.value = '';
+      return;
+    }
+    if (!parsed || typeof parsed !== 'object' || typeof parsed.version !== 'number' || !parsed.data || typeof parsed.data !== 'object') {
+      showToast('✗ Restore failed — file is not a recognized backup.');
+      input.value = '';
+      return;
+    }
+    const keysFound = BACKUP_KEYS.filter(k => Object.prototype.hasOwnProperty.call(parsed.data, k));
+    if (keysFound.length === 0) {
+      showToast('✗ Restore failed — backup file has no recognized data.');
+      input.value = '';
+      return;
+    }
+    const when = parsed.exportedAt ? new Date(parsed.exportedAt).toLocaleString() : 'an unknown date';
+    if (!confirm(`Restore backup from ${when}? This replaces ALL students, sessions, lesson plans, exams and quiz questions currently in the app. This cannot be undone.`)) {
+      input.value = '';
+      return;
+    }
+    keysFound.forEach(k => localStorage.setItem(k, JSON.stringify(parsed.data[k])));
+    showToast('✓ Backup restored. Reloading…');
+    setTimeout(() => location.reload(), 900);
+  };
+  reader.onerror = () => {
+    showToast('✗ Could not read file.');
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function renderBackupStatus() {
+  const el = document.getElementById('backup-status');
+  if (!el) return;
+  const last = localStorage.getItem(LAST_EXPORT_KEY);
+  if (!last) {
+    el.textContent = 'No backup has been downloaded yet.';
+    return;
+  }
+  const days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+  const ago = days <= 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`;
+  el.textContent = `Last backup: ${new Date(last).toLocaleString()} (${ago})`;
+  el.style.color = days > BACKUP_NUDGE_DAYS ? '#b3491f' : 'var(--ink3)';
+}
+
+// Non-blocking nudge, once per page load, only when there's real data at
+// stake — matches Item 4's spec: no nag before the first student exists.
+function checkBackupNudge() {
+  const students = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+  if (students.length === 0) return;
+  const last = localStorage.getItem(LAST_EXPORT_KEY);
+  const stale = !last || (Date.now() - new Date(last).getTime()) > BACKUP_NUDGE_DAYS * 86400000;
+  if (stale) showToast('⚠ It’s been a while since your last backup — visit Backup & Restore.');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initDatabase();
   renderStudents();
@@ -2425,6 +2553,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderLessons();
   renderExams();
   renderQuiz();
+  renderBackupStatus();
+  checkBackupNudge();
 });
 </script>
 </body>

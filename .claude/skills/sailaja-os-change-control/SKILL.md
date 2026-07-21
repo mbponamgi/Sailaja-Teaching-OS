@@ -89,8 +89,9 @@ resurrected the database (`sailaja-os-failure-archaeology` Incident 1) —
 `teach_os_students` and the new `teach_os_sessions` are now written on real
 use. The moment Sailaja opens the app, her actual roster starts accumulating
 there. It is irreplaceable — one teacher's actual records, in one browser,
-with no backend and no backup (that gap is `sailaja-os-frontier-and-method`
-Item 4, not yet built). From now on:
+with no backend — but now with a real backup path: `sailaja-os-frontier-and-method`
+Item 4 shipped 2026-07-21 (in-app "Backup & Restore" page, `exportData()`/
+`handleRestoreFile()` in `index.html`). From now on:
 
 - Any change to the shape of a student record (fields on the objects in the
   `teach_os_students` array — live shape: `id, name, parent, currBadge,
@@ -103,7 +104,9 @@ Item 4, not yet built). From now on:
   copies the data — a renamed key is silent total data loss.
 - **Backup before any risky change**: before verifying a schema-touching or
   storage-touching change against a browser profile that may hold real data,
-  export the store first (mechanics → `sailaja-os-data-model-and-migrations`).
+  export the store first — now a real one-click action on the "Backup &
+  Restore" page, not a DevTools ritual (mechanics →
+  `sailaja-os-data-model-and-migrations`).
 - Never ship code that can wipe or corrupt the store on an ordinary code
   path. `renderStudents()` (`index.html:1907`) reads with
   `JSON.parse(localStorage.getItem(DB_KEY)) || []` — note that a corrupted

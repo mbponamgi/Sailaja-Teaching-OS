@@ -59,8 +59,9 @@ verified by a 25-check real-browser add→session→edit→reload→delete
 regression (`sailaja-os-browser-verification`'s `verify-crud.mjs`). That
 work was owned and sequenced by `sailaja-os-daily-use-campaign`, whose phase
 statuses now reflect this; see Item 1 below for what shipped and what's
-still open within it. Items 2-4 (offline-complete, fees ledger, backup) are
-unaffected and remain CANDIDATE.
+still open within it. **Item 2 (offline-complete) and Item 4 (backup
+automation) are now also DONE** (2026-07-21 for both). Item 3 (fees ledger)
+remains CANDIDATE, gated on explicit owner sign-off.
 
 ---
 
@@ -233,34 +234,56 @@ all asserted by script against predicted strings.
 **Gates:** owner sign-off to even start, then data-model, change-control
 (c)+(d), browser-verification.
 
-## Item 4 — Backup automation (CANDIDATE)
+## Item 4 — Backup automation (DONE 2026-07-21)
 
-**Why it matters for daily use:** once Item 1 lands, Sailaja's entire roster
-lives in one localStorage key in one browser profile — a cleared cache is
-total loss. Verified: the app has **no** export, backup, or download feature
-(zero hits); today's only "backup" would be a DevTools-console ritual no
-teacher should be asked to perform.
+**Why it mattered for daily use:** once Item 1 landed, Sailaja's entire
+roster lived in one localStorage key in one browser profile — a cleared
+cache was total loss. Verified before this work: the app had **no** export,
+backup, or download feature (zero hits); the only "backup" was a
+DevTools-console ritual no teacher should be asked to perform.
 
-**First three steps in this repo:**
+**What actually happened, vs. the three steps originally planned — all
+three shipped as planned:**
 
-1. Add an "Export data" button (settings area or sidebar) that downloads the
-   full store as a dated JSON file via `Blob` + `a[download]` — works fully
+1. **Export**: a new "Backup & Restore" nav page (sidebar section "Data")
+   with a "Download Backup" button. `exportData()` reads all five app data
+   keys (`teach_os_students`, `_sessions`, `_lessons`, `_exams`, `_quiz` —
+   `sailaja-dark` is a UI preference, deliberately excluded), wraps them in
+   `{version: 1, exportedAt, data: {...}}`, and downloads via `Blob` +
+   `a[download]` as `sailaja-teaching-os-backup-YYYY-MM-DD.json`. Fully
    offline, zero backend, no new permissions.
-2. Add the restore path: file input → parse → validate shape/version →
-   explicit confirm → overwrite store → re-render.
-3. Add the nudge: stamp `lastExport` at each export; on load, if it's older
-   than ~30 days (or absent with data present), show a non-blocking toast
-   reminding her to export.
+2. **Restore**: a file input on the same page. `handleRestoreFile()` parses
+   the chosen file, validates it has `version` (number) and `data` (object)
+   before touching anything, rejects with a toast and zero side effects if
+   either check fails, then requires an explicit native `confirm()` naming
+   the backup's export date before overwriting — cancelling leaves the store
+   untouched. Restore is all-or-nothing per key found in the file (not a
+   merge), then reloads the page.
+3. **Nudge**: `teach_os_last_export` is stamped on every export.
+   `checkBackupNudge()` runs on every load and shows a non-blocking toast if
+   students exist and the last export is missing or >30 days old. The
+   on-page `#backup-status` line also reflects the same freshness check.
 
-**You have a result when…** a Playwright round-trip passes: seed a known
-store, export, capture the file, wipe localStorage (fresh context), restore
-from the file, and assert student/session counts and one spot-checked record
-are byte-equal to the seed. NEGATIVE prediction: restore of a malformed file
-changes nothing and says so.
+**Result, measured** (this IS "you have a result when..." — met, with the
+byte-equal check done via a full round-trip rather than a single-field
+spot-check): `sailaja-os-browser-verification`'s new `verify-backup.mjs`
+seeds the store (15 scraped students), confirms the nudge fires with no
+prior export, exports, captures the real downloaded file, adds a 16th
+student AFTER the export (proving the file is a frozen snapshot, not a live
+reference), then runs three NEGATIVE controls — non-JSON file, valid-JSON-
+wrong-shape, and a dismissed confirm — each leaving the 16-student store
+completely unchanged, before a real accept-confirm restore puts the store
+back to the exact 15-student snapshot and the 16th student is gone.
+**19/19 PASS**, zero console/page errors. The full existing suite
+(`smoke.mjs`, `verify-crud.mjs`, `verify-content-crud.mjs`,
+`verify-tweaks-panel.mjs`, `verify-offline.mjs`) stayed green afterward,
+confirming no regression.
 
-**Gates:** change-control (c)+(d) (restore path can destroy data — design
-the confirm carefully), data-model (versioned export shape),
-browser-verification. Depends on Item 1.
+**Gates passed:** change-control (c)+(d) (restore path can destroy data —
+confirm text names the exact export date; cancel is a no-op; malformed
+files are rejected before any localStorage write), data-model (versioned
+`{version, exportedAt, data}` export shape, ready for a future migration
+step if the schema changes), browser-verification (19/19).
 
 ## Item 5 — Polish, honestly labeled nice-to-have (CANDIDATE — optional)
 
@@ -492,11 +515,12 @@ relying on volatile facts:
 - No fees feature beyond the template (unchanged, Item 3 needs an owner yes first): `grep -ni "fee\|payment\|ledger" index.html`
 - No separate attendance feature (unchanged — by design, see Item 1):
   `grep -ci attendance index.html` (expect 0)
-- No export/backup feature yet (Item 4, unchanged): `grep -ni "export\|backup\|download" index.html` (expect 0 feature hits)
+- Backup & Restore feature present (Item 4 DONE 2026-07-21 — expect hits): `grep -n "function exportData\|function handleRestoreFile" index.html`
 - Zero external requests (Item 2 DONE 2026-07-21 — expect no hits): `grep -n "https://" index.html`
-- Live localStorage keys (now three, was two): `grep -n "localStorage" index.html`
+- Live localStorage keys (seven now — dark-mode pref + 5 data keys + last-export stamp): `grep -n "localStorage.setItem\|localStorage.getItem" index.html | grep -o "'[a-z_-]*'" | sort -u`
 - Hardcoded counts (Item 5, unchanged — adding a student doesn't update these): `grep -n "nav-badge\|9 classes this week" index.html`
 - Persistence layer alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs` (expect `25/25 PASS`)
+- Backup/restore round-trip alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-backup.mjs` (expect `19/19 PASS`)
 
 **Maintenance:** when an item ships or is retired, change its status here
 (CANDIDATE → SETTLED/RETIRED with a one-line outcome + pointer to the

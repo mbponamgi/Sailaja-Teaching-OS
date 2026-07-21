@@ -1,20 +1,21 @@
 ---
 name: sailaja-os-data-model-and-migrations
 description: >
-  Complete catalog of the Sailaja Teaching OS's persisted data model — six
+  Complete catalog of the Sailaja Teaching OS's persisted data model — seven
   localStorage keys as of 2026-07-21: 'teach_os_students', 'teach_os_sessions',
-  'teach_os_lessons', 'teach_os_exams', 'teach_os_quiz' (all live), and the
-  'sailaja-dark' preference — and the migration discipline protecting
-  Sailaja's real student roster now that the store is live. Load this skill
-  when: adding, renaming, or removing ANY field on a student, session,
-  lesson, exam, or quiz-question record; touching initDatabase(),
-  renderStudents(), addNewStudent(), saveStudentEdit(), deleteStudent(),
-  the session functions, or addLesson()/addExam()/addQuizQuestion(); reading
-  or writing any of the six localStorage keys; writing or reviewing a data
-  migration; authoring seed data or test fixtures; or interpreting stored
-  contents. Also covers the DOM-scrape seeding pipeline (the static HTML
-  table IS the seed fixture) and a canonical minimal seed JSON for browser
-  tests.
+  'teach_os_lessons', 'teach_os_exams', 'teach_os_quiz' (all live), the
+  'teach_os_last_export' backup-freshness stamp, and the 'sailaja-dark'
+  preference — and the migration discipline protecting Sailaja's real
+  student roster now that the store is live. Load this skill when: adding,
+  renaming, or removing ANY field on a student, session, lesson, exam, or
+  quiz-question record; touching initDatabase(), renderStudents(),
+  addNewStudent(), saveStudentEdit(), deleteStudent(), the session
+  functions, addLesson()/addExam()/addQuizQuestion(), or
+  exportData()/handleRestoreFile(); reading or writing any of the seven
+  localStorage keys; writing or reviewing a data migration; authoring seed
+  data or test fixtures; or interpreting stored contents. Also covers the
+  DOM-scrape seeding pipeline (the static HTML table IS the seed fixture)
+  and a canonical minimal seed JSON for browser tests.
 ---
 
 # Sailaja OS Data Model and Migrations
@@ -22,8 +23,11 @@ description: >
 All dynamic user data for this app is designed to live in **one localStorage
 key**: `teach_os_students`, managed by three functions (`initDatabase`,
 `renderStudents`, `addNewStudent`) in `index.html`. There is no server, no
-IndexedDB, no build step, no export button. Once real data exists, that key
-holds Sailaja's actual student roster and is **irreplaceable** — the owner's
+IndexedDB, no build step. An in-app export/restore button now exists (Item
+4, `sailaja-os-frontier-and-method`, DONE 2026-07-21) but is still a manual
+action Sailaja must trigger — it is not automatic or continuous. Once real
+data exists, that key holds Sailaja's actual student roster and is
+**irreplaceable** — the owner's
 house rule (adopted verbatim from Family Finance OS, 2026-07-20) applies:
 **never ship anything that can wipe or corrupt the store; schema changes need
 migrations once data is live; removing or renaming keys/fields needs explicit
@@ -63,13 +67,13 @@ before citing, per "Provenance and maintenance").
 
 ## 1. Complete catalog of persisted state
 
-Six localStorage keys as of 2026-07-21 (was two before that day's work —
-the persistence-layer fix added `teach_os_sessions`, and Phase 3(d)
-afterward added `teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`).
-Nothing else persists (`tweaks-panel.js` contains no localStorage
-calls). localStorage is **per-origin**: `http://localhost:8000` and
-`http://localhost:8001` are different stores — a port change makes the app
-"forget" everything (triage for that → `sailaja-os-debugging-playbook`).
+Seven localStorage keys as of 2026-07-21 (was two before that day's work —
+the persistence-layer fix added `teach_os_sessions`, Phase 3(d) afterward
+added `teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`, and Item 4 added
+`teach_os_last_export`). Nothing else persists (`tweaks-panel.js` contains
+no localStorage calls). localStorage is **per-origin**: `http://localhost:8000`
+and `http://localhost:8001` are different stores — a port change makes the
+app "forget" everything (triage for that → `sailaja-os-debugging-playbook`).
 
 | Key | Status | Value | Written by | Read by |
 |---|---|---|---|---|
@@ -78,6 +82,7 @@ calls). localStorage is **per-origin**: `http://localhost:8000` and
 | `teach_os_lessons` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of lesson-plan records (schema below) | `addLesson()` | `renderLessons()` |
 | `teach_os_exams` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of exam records (schema below) | `addExam()` | `renderExams()` |
 | `teach_os_quiz` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of quiz-question records (schema below) | `addQuizQuestion()` | `renderQuiz()` |
+| `teach_os_last_export` | **LIVE** since 2026-07-21 (new, Item 4) | ISO-8601 timestamp string, e.g. `"2026-07-21T09:24:32.501Z"` | `exportData()`, on every successful backup download | `renderBackupStatus()`, `checkBackupNudge()` — **not** one of `BACKUP_KEYS`, so it is never itself included in or overwritten by a backup/restore round-trip |
 | `sailaja-dark` | **LIVE** (unchanged) | string `'1'` or `'0'` | `toggleDark()` | restore IIFE, runs before DOMContentLoaded |
 
 `DB_KEY = 'teach_os_students'` and `SESSIONS_KEY = 'teach_os_sessions'` are
@@ -336,8 +341,10 @@ change):
    three paths: old-shape data, current-shape data (no-op), and absent key
    (fresh-seed path).
 6. **Every migration ships with a backup step** for the owner's machine —
-   copy the raw JSON out before the new code runs. Backup mechanics →
-   `sailaja-os-env-run-deploy`.
+   copy the raw JSON out before the new code runs. Backup mechanics: use the
+   in-app "Backup & Restore" page's Download Backup button (`exportData()`
+   in `index.html`, Item 4, DONE 2026-07-21) — no DevTools console ritual
+   needed anymore.
 7. If the array ever gains a wrapper (e.g. `{v: 2, students: [...]}`), audit
    every touch point in §1's table first: `initDatabase`'s
    `!localStorage.getItem(DB_KEY)` guard still works, but both

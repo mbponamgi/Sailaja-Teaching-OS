@@ -297,8 +297,9 @@ CANDIDATE — not written, not approved):
    `index.html` — details → `sailaja-os-env-run-deploy`.
 3. Where the knowledge lives: `.claude/skills/` is the system of record.
 4. Data-safety warning: student data lives only in browser localStorage
-   (`teach_os_students`) — one browser, no backend, no backup; export
-   before risky changes.
+   (`teach_os_students`) — one browser, no backend. A real backup exists
+   (the "Backup & Restore" nav page, Item 4) — tell Sailaja to use it
+   regularly, and export before risky changes.
 
 If a README lands, update the §1 map in this skill in the same commit (§4
 core rule).
