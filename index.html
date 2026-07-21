@@ -484,15 +484,15 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 
   <div class="nav-section">Overview</div>
   <button class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">◈</span> Dashboard</button>
-  <button class="nav-item" onclick="showPage('students')"><span class="nav-icon">◉</span> All Students <span class="nav-badge">14</span></button>
+  <button class="nav-item" onclick="showPage('students')"><span class="nav-icon">◉</span> All Students <span class="nav-badge" id="nav-badge-students">14</span></button>
 
   <div class="nav-section">Language</div>
-  <button class="nav-item" onclick="showPage('a1a2')"><span class="nav-icon">◎</span> A1 / A2 Tuitions <span class="nav-badge">4</span></button>
+  <button class="nav-item" onclick="showPage('a1a2')"><span class="nav-icon">◎</span> A1 / A2 Tuitions <span class="nav-badge" id="nav-badge-a1a2">4</span></button>
 
   <div class="nav-section">Curricula</div>
-  <button class="nav-item" onclick="showPage('cbse')"><span class="nav-icon">◦</span> CBSE <span class="nav-badge">5</span></button>
-  <button class="nav-item" onclick="showPage('cambridge')"><span class="nav-icon">◦</span> Cambridge <span class="nav-badge">4</span></button>
-  <button class="nav-item" onclick="showPage('ibdp')"><span class="nav-icon">◦</span> IBDP <span class="nav-badge">2</span></button>
+  <button class="nav-item" onclick="showPage('cbse')"><span class="nav-icon">◦</span> CBSE <span class="nav-badge" id="nav-badge-cbse">5</span></button>
+  <button class="nav-item" onclick="showPage('cambridge')"><span class="nav-icon">◦</span> Cambridge <span class="nav-badge" id="nav-badge-cambridge">4</span></button>
+  <button class="nav-item" onclick="showPage('ibdp')"><span class="nav-icon">◦</span> IBDP <span class="nav-badge" id="nav-badge-ibdp">2</span></button>
 
   <div class="nav-section">Planning</div>
   <button class="nav-item" onclick="showPage('lessons')"><span class="nav-icon">◦</span> Lesson Plans</button>
@@ -578,31 +578,31 @@ textarea.form-control { resize: vertical; min-height: 70px; }
     <div class="stat-card">
       <div class="stat-accent" style="background:var(--french-blue)"></div>
       <div class="stat-label">Students</div>
-      <div class="stat-value">14</div>
+      <div class="stat-value" id="stat-students">14</div>
       <div class="stat-sub">All curricula</div>
     </div>
     <div class="stat-card">
       <div class="stat-accent" style="background:var(--cbse)"></div>
       <div class="stat-label">CBSE</div>
-      <div class="stat-value">5</div>
+      <div class="stat-value" id="stat-cbse">5</div>
       <div class="stat-sub">Gr 4 · 7 · 9 · 10 · 12</div>
     </div>
     <div class="stat-card">
       <div class="stat-accent" style="background:var(--cambridge)"></div>
       <div class="stat-label">Cambridge</div>
-      <div class="stat-value">4</div>
+      <div class="stat-value" id="stat-cambridge">4</div>
       <div class="stat-sub">Gr 5 · 7 · 8 · IGCSE</div>
     </div>
     <div class="stat-card">
       <div class="stat-accent" style="background:var(--ibdp)"></div>
       <div class="stat-label">IBDP</div>
-      <div class="stat-value">2</div>
+      <div class="stat-value" id="stat-ibdp">2</div>
       <div class="stat-sub">SL · HL · Gr 11–12</div>
     </div>
     <div class="stat-card">
       <div class="stat-accent" style="background:var(--gold)"></div>
       <div class="stat-label">A1 / A2</div>
-      <div class="stat-value">4</div>
+      <div class="stat-value" id="stat-a1a2">4</div>
       <div class="stat-sub">Language tuitions</div>
     </div>
     <div class="stat-card">
@@ -734,18 +734,18 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <div class="page-header">
     <div>
       <div class="page-title">All <em>Students</em></div>
-      <div class="page-subtitle">14 students across CBSE · Cambridge · IBDP · A1/A2</div>
+      <div class="page-subtitle"><span id="subtitle-count-students">14</span> students across CBSE · Cambridge · IBDP · A1/A2</div>
     </div>
     <button class="btn btn-primary" onclick="openModal('add-student')">+ Add Student</button>
   </div>
 
   <div class="filter-bar">
     <span class="filter-label">Filter</span>
-    <button class="filter-btn active" onclick="filterStudents('all',this)">All (14)</button>
-    <button class="filter-btn" onclick="filterStudents('cbse',this)">CBSE (5)</button>
-    <button class="filter-btn" onclick="filterStudents('cambridge',this)">Cambridge (4)</button>
-    <button class="filter-btn" onclick="filterStudents('ibdp',this)">IBDP (2)</button>
-    <button class="filter-btn" onclick="filterStudents('a1',this)">A1/A2 (4)</button>
+    <button class="filter-btn active" onclick="filterStudents('all',this)">All (<span id="filter-count-all">14</span>)</button>
+    <button class="filter-btn" onclick="filterStudents('cbse',this)">CBSE (<span id="filter-count-cbse">5</span>)</button>
+    <button class="filter-btn" onclick="filterStudents('cambridge',this)">Cambridge (<span id="filter-count-cambridge">4</span>)</button>
+    <button class="filter-btn" onclick="filterStudents('ibdp',this)">IBDP (<span id="filter-count-ibdp">2</span>)</button>
+    <button class="filter-btn" onclick="filterStudents('a1',this)">A1/A2 (<span id="filter-count-a1a2">4</span>)</button>
     <button class="filter-btn" onclick="filterStudents('primary',this)">Gr 3–5</button>
     <button class="filter-btn" onclick="filterStudents('middle',this)">Gr 6–8</button>
     <button class="filter-btn" onclick="filterStudents('secondary',this)">Gr 9–10</button>
@@ -915,7 +915,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <div class="page-header">
     <div>
       <div class="page-title"><em>A1 / A2</em> Language Tuitions</div>
-      <div class="page-subtitle">4 students · Conversational French · DELF pathway</div>
+      <div class="page-subtitle"><span id="subtitle-count-a1a2">4</span> students · Conversational French · DELF pathway</div>
     </div>
     <button class="btn btn-primary" onclick="openModal('add-session')">+ Log Session</button>
   </div>
@@ -946,7 +946,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <div class="page-header">
     <div>
       <div class="page-title"><em>CBSE</em> Students</div>
-      <div class="page-subtitle">5 students · Grade 4 to 12 · Board exam focus</div>
+      <div class="page-subtitle"><span id="subtitle-count-cbse">5</span> students · Grade 4 to 12 · Board exam focus</div>
     </div>
     <button class="btn btn-primary" onclick="openModal('add-session')">+ Log Session</button>
   </div>
@@ -967,7 +967,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         <div class="progress-track" style="flex:0 0 auto;width:100%;margin-top:12px;height:6px;"><div class="progress-fill" style="width:55%;background:var(--cbse)"></div></div>
       </div></div>
       <div class="card"><div class="card-header"><span class="card-title">Recent Sessions</span></div>
-        <div class="session-list">
+        <div class="session-list" id="cbse-primary-sessions">
           <div class="session-item" style="grid-template-columns:60px 1fr;"><div class="session-when"><div class="session-day">29 Apr</div></div><div><div class="session-title">Les animaux — animal vocabulary</div><div class="session-note">Good retention. Needs number practice.</div></div></div>
           <div class="session-item" style="grid-template-columns:60px 1fr;"><div class="session-when"><div class="session-day">22 Apr</div></div><div><div class="session-title">Les couleurs</div><div class="session-note">Identified all 10 colours. Writing needs work.</div></div></div>
         </div>
@@ -982,7 +982,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         <div class="progress-track" style="flex:0 0 auto;width:100%;margin-top:12px;height:6px;"><div class="progress-fill" style="width:70%;background:var(--cbse)"></div></div>
       </div></div>
       <div class="card"><div class="card-header"><span class="card-title">Recent Sessions</span></div>
-        <div class="session-list">
+        <div class="session-list" id="cbse-middle-sessions">
           <div class="session-item" style="grid-template-columns:60px 1fr;"><div class="session-when"><div class="session-day">30 Apr</div></div><div><div class="session-title">Negation — ne...pas, ne...jamais</div><div class="session-note">Understood concept well. Exercises completed.</div></div></div>
         </div>
       </div>
@@ -1010,7 +1010,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         <div class="progress-track" style="flex:0 0 auto;width:100%;margin-top:12px;height:6px;"><div class="progress-fill" style="width:71%;background:var(--cbse)"></div></div>
       </div></div>
       <div class="card"><div class="card-header"><span class="card-title">Recent Sessions</span></div>
-        <div class="session-list">
+        <div class="session-list" id="cbse-senior-sessions">
           <div class="session-item" style="grid-template-columns:60px 1fr;"><div class="session-when"><div class="session-day">26 Apr</div></div><div><div class="session-title">Essay writing — mon avenir</div><div class="session-note">Good structure. Vocabulary needs expansion.</div></div></div>
         </div>
       </div>
@@ -1025,7 +1025,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <div class="page-header">
     <div>
       <div class="page-title"><em>Cambridge</em> Students</div>
-      <div class="page-subtitle">4 students · Grade 5 to IGCSE · Cambridge International</div>
+      <div class="page-subtitle"><span id="subtitle-count-cambridge">4</span> students · Grade 5 to IGCSE · Cambridge International</div>
     </div>
     <button class="btn btn-primary" onclick="openModal('add-session')">+ Log Session</button>
   </div>
@@ -1060,7 +1060,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <div class="page-header">
     <div>
       <div class="page-title"><em>IBDP</em> Students</div>
-      <div class="page-subtitle">2 students · SL & HL · Paper 1, Paper 2, IA</div>
+      <div class="page-subtitle"><span id="subtitle-count-ibdp">2</span> students · SL & HL · Paper 1, Paper 2, IA</div>
     </div>
     <button class="btn btn-primary" onclick="openModal('add-session')">+ Log Session</button>
   </div>
@@ -2108,6 +2108,92 @@ function renderStudents() {
   });
 }
 
+// Live counts — sailaja-os-frontier-and-method Item 5 ("Live counts"). Every
+// element here used to be a hardcoded number frozen at whatever the static
+// demo said; now all derived from teach_os_students on every call. Only the
+// numeric badges/values are wired up, not the descriptive sub-text (e.g. the
+// dashboard stat cards' "Gr 4 · 7 · 9 · 10 · 12" line) -- that text isn't
+// reliably derivable from the free-text levelBadge field and is out of this
+// item's scope. The dashboard's "This Week" stat and "9 classes this week..."
+// subtitle stay static too -- that's schedule-aware dashboard work, not
+// started (see the skill for why: no structured, queryable schedule data
+// model exists yet).
+function setTextIfPresent(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function renderLiveCounts() {
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  const counts = { a1: 0, cbse: 0, cambridge: 0, ibdp: 0 };
+  students.forEach(s => { if (Object.prototype.hasOwnProperty.call(counts, s.curr)) counts[s.curr]++; });
+
+  setTextIfPresent('nav-badge-students', students.length);
+  setTextIfPresent('nav-badge-a1a2', counts.a1);
+  setTextIfPresent('nav-badge-cbse', counts.cbse);
+  setTextIfPresent('nav-badge-cambridge', counts.cambridge);
+  setTextIfPresent('nav-badge-ibdp', counts.ibdp);
+
+  setTextIfPresent('stat-students', students.length);
+  setTextIfPresent('stat-cbse', counts.cbse);
+  setTextIfPresent('stat-cambridge', counts.cambridge);
+  setTextIfPresent('stat-ibdp', counts.ibdp);
+  setTextIfPresent('stat-a1a2', counts.a1);
+
+  setTextIfPresent('subtitle-count-students', students.length);
+  setTextIfPresent('subtitle-count-a1a2', counts.a1);
+  setTextIfPresent('subtitle-count-cbse', counts.cbse);
+  setTextIfPresent('subtitle-count-cambridge', counts.cambridge);
+  setTextIfPresent('subtitle-count-ibdp', counts.ibdp);
+
+  // Students-page filter-bar counts (sailaja-os-architecture-contract W7 —
+  // was hand-maintained drift, "All (14)" vs. the real 15-row seed).
+  setTextIfPresent('filter-count-all', students.length);
+  setTextIfPresent('filter-count-cbse', counts.cbse);
+  setTextIfPresent('filter-count-cambridge', counts.cambridge);
+  setTextIfPresent('filter-count-ibdp', counts.ibdp);
+  setTextIfPresent('filter-count-a1a2', counts.a1);
+}
+
+// Real "Recent Sessions" -- sailaja-os-frontier-and-method Item 5. Only the
+// CBSE page's 3 tab cards (primary/middle/senior) show a "Recent Sessions"
+// card at all; Cambridge and IBDP have no equivalent, and the dashboard's
+// "Upcoming Sessions" card is forward-looking schedule content, deliberately
+// out of scope (see renderLiveCounts' comment). Each card is still tied to
+// one specific fictional-demo student BY NAME (there's no other link in the
+// static markup) -- the same 15 names are the initDatabase() seed, so the
+// lookup resolves to a real id on first load. If Sailaja renames one of
+// these particular students, its card falls back to "No sessions logged
+// yet" rather than silently showing someone else's data.
+const CBSE_RECENT_SESSIONS_CARDS = [
+  { studentName: 'Aarav T.', containerId: 'cbse-primary-sessions' },
+  { studentName: 'Diya R.', containerId: 'cbse-middle-sessions' },
+  { studentName: 'Kabir S.', containerId: 'cbse-senior-sessions' },
+];
+
+function formatSessionDay(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (isNaN(d.getTime())) return dateStr || '';
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function renderCBSERecentSessions() {
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  CBSE_RECENT_SESSIONS_CARDS.forEach(({ studentName, containerId }) => {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const student = students.find(s => s.name === studentName);
+    const sessions = student ? getSessionsForStudent(student.id).slice(0, 5) : [];
+    el.innerHTML = sessions.length
+      ? sessions.map(s => `
+        <div class="session-item" style="grid-template-columns:60px 1fr;">
+          <div class="session-when"><div class="session-day">${esc(formatSessionDay(s.date))}</div></div>
+          <div><div class="session-title">${esc(s.topic || 'Session logged')}</div><div class="session-note">${esc(s.notes || s.performance || '')}</div></div>
+        </div>`).join('')
+      : '<div class="session-item" style="grid-template-columns:1fr;"><div style="color:var(--ink3);font-size:0.78rem;">No sessions logged yet.</div></div>';
+  });
+}
+
 function addNewStudent() {
   const name = document.getElementById('new-student-name').value.trim();
   if (!name) return alert('Please enter a student name.');
@@ -2131,6 +2217,7 @@ function addNewStudent() {
 
   renderStudents();
   populateSessionStudentSelect();
+  renderLiveCounts();
 
   document.getElementById('new-student-name').value = '';
   document.getElementById('new-student-level').value = '';
@@ -2180,6 +2267,8 @@ function saveStudentEdit() {
   localStorage.setItem(DB_KEY, JSON.stringify(students));
   renderStudents();
   populateSessionStudentSelect();
+  renderLiveCounts();
+  renderCBSERecentSessions();
   closeModal('view-student');
   showToast('✓ Student updated!');
 }
@@ -2200,6 +2289,8 @@ function deleteStudent() {
   currentViewStudentId = null;
   renderStudents();
   populateSessionStudentSelect();
+  renderLiveCounts();
+  renderCBSERecentSessions();
   closeModal('view-student');
   showToast('✓ Student deleted.');
 }
@@ -2253,6 +2344,7 @@ function logSession() {
   localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
 
   if (currentViewStudentId === studentId) renderViewStudentSessions(studentId);
+  renderCBSERecentSessions();
 
   document.getElementById('session-topic').value = '';
   document.getElementById('session-date').value = '';
@@ -2555,6 +2647,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderQuiz();
   renderBackupStatus();
   checkBackupNudge();
+  renderLiveCounts();
+  renderCBSERecentSessions();
 });
 </script>
 </body>

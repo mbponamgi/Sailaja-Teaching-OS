@@ -61,7 +61,7 @@ commands in "Provenance and maintenance" before relying on them.
 | ~9–~440 | All CSS, one `<style>` block | Three `@font-face` rules at the top (added 2026-07-21, pointing at `vendor/fonts/*.woff2`, replacing the Google Fonts `<link>`), then CSS custom properties on `:root`; `--french-blue` and `--bg`-family variables are what the tweaks panel mutates |
 | 435–480 | Sidebar | nav buttons `onclick="showPage('<id>')"` (456–475), dark toggle in footer |
 | 483–1444 | `<main>` — the 12 pages | breadcrumb target `id="breadcrumb-current"` (491). One `<div class="page" id="page-<id>">` each: dashboard 508, students 700, a1a2 881, cbse 912, cambridge 991, ibdp 1026, lessons 1077, schedule 1125, exams 1198, quizzes 1245, comms 1306, resources 1400 |
-| 724–871 | Students table (inside page-students) | `id="students-table"` (724); **15 static seeded rows** (`<tr data-curr="..." data-band="...">`, first at 737) with masked parent phones (`98765XXXXX` style, e.g. 738). Note: the nav badge (457) and "All" filter button (711) both say 14 — static-content drift, see W7 |
+| 724–871 | Students table (inside page-students) | `id="students-table"` (724); **15 static seeded rows** (`<tr data-curr="..." data-band="...">`, first at 737) with masked parent phones (`98765XXXXX` style, e.g. 738). The nav badge and "All" filter button's counts are no longer static — `renderLiveCounts()` overwrites them on load (W7 SETTLED) |
 | 1452–1589 | The 6 modals | `<div class="modal-bg" id="modal-<id>">`: add-student, add-session (Student select now dynamic, real `id`s on every field), add-lesson, add-exam, add-quiz (unchanged, toast-only), view-student (rewritten 2026-07-21 from a static placeholder into a real edit/delete form) |
 | ~1591 | Toast | `<div class="toast" id="toast">` |
 | ~1593–~1610 | **Plain `<script>` #1 — page nav, modals, toasts, quiz, filters, dark mode, greeting, word-of-the-day** | `breadcrumbLabels`, `showPage`, `openModal`/`closeModal`, backdrop-click binding, Escape handler, `showToast`, `saveAndClose`, `answerQuiz`, `filterStudents` (reads `row.dataset.curr`/`.band`), `showTab`, `filterBtns`, `toggleDark`, dark-restore IIFE, `GREETINGS`/`getGreeting`/`updateGreeting`, `WORDS` word-of-the-day array (30 entries), `renderWord`/`nextWord`, `copyTemplate`. Unchanged by the 2026-07-21 fix except the file's absolute line numbers shifted (the modal edits above added lines before this block) |
@@ -136,7 +136,7 @@ Each with a one-line check from the repo root.
    parse time).
 8. **v2 stays frozen.** `git diff --name-only | grep -x "sailaja_teaching_os_v2.html"` must be empty in every commit.
 
-## 4. Honest weak points — verified 2026-07-20/21; W1-W3, W4, W5 SETTLED, W6-W7 still OPEN
+## 4. Honest weak points — verified 2026-07-20/21; W1-W5 and W7 SETTLED, W6 still OPEN
 
 - **W1 — SETTLED 2026-07-21 (was OPEN).** The dead `text/babel` block. No
   Babel was loaded anywhere, so the browser silently skipped the entire
@@ -184,10 +184,17 @@ Each with a one-line check from the repo root.
   gets a standalone open control (a button that fires the same postMessage)
   is an owner call, not yet made — removing React made the panel cheaper to
   ship, not more reachable.
-- **W7 — OPEN (minor). Static-content drift.** The students table holds 15
-  seeded rows, but the nav badge (457) and the "All" filter button (711)
-  say 14. Symptom of hand-maintained duplicated counts; the real fix is the
-  database rendering these numbers, not another hand edit.
+- **W7 — SETTLED 2026-07-21 (was OPEN, minor). Static-content drift.** The
+  students table held 15 seeded rows, but the nav badge, the "All" filter
+  button, dashboard stat cards, and page subtitles all said 14 — a symptom
+  of hand-maintained duplicated counts. **Fixed the way this entry always
+  said it should be**: a new `renderLiveCounts()` reads `teach_os_students`
+  and writes every one of those elements (each now carries an id, e.g.
+  `#nav-badge-students`, `#filter-count-all`) on load and after every
+  add/edit/delete. Verified: `sailaja-os-browser-verification`'s new
+  `verify-live-counts.mjs`, 50/50 PASS, including that the real 15-count
+  survives a reload and shifts correctly when a student's curriculum
+  changes.
 
 ## 5. Where new code goes
 
@@ -246,7 +253,7 @@ One-line re-verification commands (repo root):
 - Vanilla tweaks-panel API present (decision c): `grep -n "^function createTweaksPanel\|^function tweakSlider\|^function tweakToggle" tweaks-panel.js`
 - Storage keys (six): `grep -n "sailaja-dark\|teach_os_students\|teach_os_sessions\|teach_os_lessons\|teach_os_exams\|teach_os_quiz" index.html`
 - Panel activation contract (W6, still relevant, unaffected by the React removal): `grep -n "__activate_edit_mode\|__edit_mode_available" tweaks-panel.js`
-- Seeded rows (15) vs badge (14, still drifted — W7 unfixed): `grep -c '<tr data-curr=' index.html` and `grep -n 'nav-badge">14\|All (14)' index.html`
+- Live counts wired up (W7 SETTLED — expect a hit, and expect zero static "14"/"All (14)" hits since renderLiveCounts() overwrites them at runtime): `grep -c '<tr data-curr=' index.html` and `grep -n 'function renderLiveCounts' index.html`
 - WORDS entry count (30): `grep -c '{ word:' index.html`
 - v2 still static: `grep -c "React\|localStorage\|text/babel" sailaja_teaching_os_v2.html` (must be 0 — but see `sailaja-os-failure-archaeology` Incident 3's caution about the "older" framing for this file)
 - Still zero-build: `ls package.json 2>&1`

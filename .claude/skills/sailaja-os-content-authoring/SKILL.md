@@ -239,12 +239,19 @@ selector below must resolve or the scrape THROWS):
       Add Exam `<select>` (1541); the weekly schedule table (1136–1152);
       the curriculum page card (CBSE 926–985 / Cambridge 999–1020 / IBDP
       1034–1061 / A1 892–904); and any dashboard session/deadline rows.
-- [ ] **Count labels are static and already drifted:** the table has 15
-      rows but "14" is hardcoded at 457 (nav badge), 548 (stat card), 704
-      (subtitle), 711 (filter pill); per-curriculum badges at 460–465 and
-      pills at 712–715 sum to 15. If you add a row, update the counts
-      deliberately — and don't silently "fix" the existing 14/15 mismatch
-      in an unrelated commit; flag it.
+- [ ] **Count labels are now LIVE, not static (fixed 2026-07-21 —
+      `sailaja-os-architecture-contract` W7 SETTLED, `sailaja-os-frontier-
+      and-method` Item 5's "Live counts").** The nav badges, dashboard stat
+      cards, page subtitles, and the Students-page filter-bar pills all read
+      `teach_os_students` live via `renderLiveCounts()` — nothing to
+      hand-edit. But this checklist item is specifically about the STATIC
+      demo table (the `initDatabase()` seed source): if you add a 16th
+      static `<tr>` there, remember `renderLiveCounts()` only fires from
+      `DOMContentLoaded`/add/edit/delete — a raw edit to the static table
+      markup itself needs a real page load (or `initDatabase()` re-run
+      against a cleared store) before the counts reflect it, since
+      `initDatabase()` only scrapes into localStorage once, on first load
+      with no existing `teach_os_students` key.
 - [ ] Gates: this surface is behavior-adjacent AND seed-relevant — run the
       seed-consistency check from `sailaja-os-browser-verification`'s
       scripts (assert the row count, and once the scraper is live, that a

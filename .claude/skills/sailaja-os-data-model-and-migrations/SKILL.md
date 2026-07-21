@@ -252,10 +252,10 @@ change control**.
    `sailaja-os-browser-verification`'s `dump-store.mjs` for scripted seeding.
 4. ~~`renderStudents` loses band data~~ **Fixed 2026-07-21** — see §1's
    `band` field entry.
-5. **Hardcoded counts unchanged (out of scope for this fix).** The filter
-   buttons' labels (e.g. "All (14)", which already disagrees with the 15
-   actual rows) and the nav badge never update from the store — explicitly
-   deferred, `sailaja-os-frontier-and-method` Item 5.
+5. ~~Hardcoded counts~~ **Fixed 2026-07-21** — the filter buttons' labels,
+   nav badge, dashboard stat cards, and page subtitles all now read live
+   from the store via `renderLiveCounts()`, called on load and after every
+   add/edit/delete. `sailaja-os-frontier-and-method` Item 5, "Live counts."
 6. **No JSON error handling (unchanged).** `renderStudents` does a bare
    `JSON.parse(localStorage.getItem(DB_KEY)) || []` — a *missing* key is
    fine, but a *corrupted* value throws uncaught and the table renders

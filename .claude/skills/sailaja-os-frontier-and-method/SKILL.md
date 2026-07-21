@@ -60,8 +60,11 @@ regression (`sailaja-os-browser-verification`'s `verify-crud.mjs`). That
 work was owned and sequenced by `sailaja-os-daily-use-campaign`, whose phase
 statuses now reflect this; see Item 1 below for what shipped and what's
 still open within it. **Item 2 (offline-complete) and Item 4 (backup
-automation) are now also DONE** (2026-07-21 for both). Item 3 (fees ledger)
-remains CANDIDATE, gated on explicit owner sign-off.
+automation) are now also DONE** (2026-07-21 for both), as are Item 5's
+"Live counts" and "Real Recent Sessions" nice-to-haves (also 2026-07-21,
+scope explicitly narrowed to exclude the schedule-aware dashboard
+sub-item). Item 3 (fees ledger) remains CANDIDATE, gated on explicit owner
+sign-off.
 
 ---
 
@@ -82,12 +85,12 @@ unchanged as of 2026-07-20 and still describe real gaps:
 | Log a session | "Save Session" button + full form | **FIXED 2026-07-21.** Was zero storage design (no `id`s, hardcoded 15-name `<select>`, toast-only Save). Now: real `id`s, a dynamically populated student select, `logSession()` writes to the new `teach_os_sessions` key — this doubles as attendance, per this item's own design call below. |
 | Student edit/delete | Clicking a row opens "Student Profile" | **FIXED 2026-07-21.** Was a labeled placeholder ("Replace with actual data when setting up the real database") with no edit/delete path at all. Now a real form: edit any field, delete with confirm (cascades to that student's sessions). |
 | Progress updates | A progress bar on each row | **FIXED 2026-07-21** (folded into the edit path, per this item's Phase 3(c) decision below — no separate progress UI was built). Editable via the student profile's Progress field; still a free-text `"NN%"` string, unchanged format. |
-| Attendance | Implied by session history cards | Still no dedicated feature — **by design**, unchanged from the original plan: a session record (now real) with `studentId`+`date` IS the attendance record. The dashboard/per-curriculum "Recent Sessions" cards are still hardcoded static dates; wiring them to real session data was not in this fix's scope. |
+| Attendance | Implied by session history cards | Still no dedicated feature — **by design**, unchanged from the original plan: a session record (now real) with `studentId`+`date` IS the attendance record. **Partially fixed 2026-07-21**: the CBSE page's 3 "Recent Sessions" cards (the only curriculum pages that have one) now render real session data. The dashboard's "Upcoming Sessions" card is still hardcoded/fictional — deliberately out of scope, it's forward-looking schedule content (Item 5's schedule-aware-dashboard sub-item, not started). |
 | Fees | "Fee Reminder" card on the Parent Comms page | Unchanged. A copy-to-clipboard WhatsApp text template with fill-in blanks. No amounts, no ledger, no payment records — still needs an explicit owner yes before any work starts (Item 3, below). |
 | Schedule | "Weekly Master Schedule" table | Unchanged. Hardcoded static table; "+ Schedule Class" opens the now-functional add-session modal, but nothing populates the schedule table from real data yet. |
 | Exams / Lessons / Quiz bank | Add modals with Save buttons | Unchanged. Still toast-only `saveAndClose()` — explicitly out of this fix's scope (Item 5, "only if Sailaja actually asks"). |
-| Counts everywhere | "14 students", "9 classes this week" | Unchanged. Still hardcoded strings — deliberately deferred (Item 5); adding a student does NOT update the nav badge or page subtitles yet. |
-| What actually persists | — | Now three keys: `sailaja-dark` (unchanged), `teach_os_students`, `teach_os_sessions` (both new-live 2026-07-21). Full schema → `sailaja-os-data-model-and-migrations`. |
+| Counts everywhere | "14 students", "9 classes this week" | **Partially fixed 2026-07-21**: nav badges, dashboard stat cards, page subtitles, and the Students-page filter-bar pills now read the store live (Item 5, "Live counts") — adding/editing/deleting a student updates all of them immediately. "9 classes this week · 3 exams coming up" is still a hardcoded string — that one needs a structured schedule data model (Item 5's schedule-aware-dashboard sub-item, not started). |
+| What actually persists | — | Now seven keys: `sailaja-dark` (unchanged), `teach_os_students`/`teach_os_sessions`/`teach_os_lessons`/`teach_os_exams`/`teach_os_quiz` (all live), `teach_os_last_export` (Item 4). Full schema → `sailaja-os-data-model-and-migrations`. |
 
 ## How to read the catalog
 
@@ -292,9 +295,9 @@ or wait. Recorded so they aren't re-invented as big ideas:
 
 | Nice-to-have | Verified gap today | One-line milestone |
 |---|---|---|
-| Schedule-aware dashboard | "9 classes this week · 3 exams coming up" is a hardcoded string (line 513); schedule page is a static May-2026 table (line 1125) | Dashboard counts computed from stored schedules match a hand-counted seed |
-| Live counts | Nav badge "14" (457), page subtitles (704, 885, 916…) hardcoded | Add a student → every count increments, no hardcoded numbers left in those elements |
-| Real "Recent Sessions" | Hardcoded April entries (594–618, 938–981) | Cards render the seed's newest sessions, newest first |
+| Schedule-aware dashboard | "9 classes this week · 3 exams coming up" is a hardcoded string (`#dashboard-subgreeting`); the "Upcoming Sessions" card and "This Week" stat are hardcoded/fictional; schedule page is a static May-2026 table. **Explicitly OUT of scope for the 2026-07-21 live-counts/Recent-Sessions pass** — needs a structured, queryable schedule data model (today's `schedule` field is free text like "Tue · 4:00 PM", not derivable into "classes this week") — genuinely bigger scope, deferred pending an owner decision on that data model. Still CANDIDATE. | Dashboard counts computed from stored schedules match a hand-counted seed |
+| ~~Live counts~~ | **DONE 2026-07-21.** Nav badges, dashboard stat-card numbers (not their descriptive sub-labels), page-subtitle counts, and the Students page's filter-bar button counts (`sailaja-os-architecture-contract` W7, now SETTLED) all now read `teach_os_students` live via `renderLiveCounts()`. Fixed a real latent bug in the process: the old hardcoded "14" was already wrong the moment `initDatabase()` started scraping — the real seeded total is 15. | Milestone met: adding/editing/deleting a student updates every wired count immediately, verified `verify-live-counts.mjs` |
+| ~~Real "Recent Sessions"~~ | **DONE 2026-07-21, narrowed scope.** Only the CBSE page's 3 tab cards (primary/middle/senior) had a "Recent Sessions" card at all — Cambridge and IBDP never did, and the dashboard's "Upcoming Sessions" card is forward-looking (bucketed under schedule-aware dashboard above, not this). Those 3 cards now render real `teach_os_sessions` data via `renderCBSERecentSessions()`, name-matched to the 3 specific seeded students each card has always displayed (`Aarav T.`/`Diya R.`/`Kabir S.`) — a real fragility if Sailaja renames one of those three specific students (falls back to the empty-state message rather than showing someone else's data), documented in-code. | Milestone met: cards start honestly empty ("No sessions logged yet.") and show real logged sessions newest-first, verified `verify-live-counts.mjs` |
 | ~~Lesson-plan / exam / quiz persistence~~ | **DONE 2026-07-21**, built on explicit owner request. `teach_os_lessons`/`teach_os_exams`/`teach_os_quiz` all live; add-only (no edit/delete, deliberately smaller scope than Item 1). Verified: `sailaja-os-browser-verification`'s `verify-content-crud.mjs`, 26/26 PASS including reload-survival | Milestone met — see `sailaja-os-daily-use-campaign` Phase 3(d) |
 
 ## THE ANTI-ROADMAP (owner ruled these OUT, 2026-07-20)
@@ -518,9 +521,11 @@ relying on volatile facts:
 - Backup & Restore feature present (Item 4 DONE 2026-07-21 — expect hits): `grep -n "function exportData\|function handleRestoreFile" index.html`
 - Zero external requests (Item 2 DONE 2026-07-21 — expect no hits): `grep -n "https://" index.html`
 - Live localStorage keys (seven now — dark-mode pref + 5 data keys + last-export stamp): `grep -n "localStorage.setItem\|localStorage.getItem" index.html | grep -o "'[a-z_-]*'" | sort -u`
-- Hardcoded counts (Item 5, unchanged — adding a student doesn't update these): `grep -n "nav-badge\|9 classes this week" index.html`
+- Live counts present (Item 5 DONE 2026-07-21 — expect a hit): `grep -n "function renderLiveCounts" index.html`
+- Schedule-aware dashboard still NOT built (Item 5's one remaining sub-item, unchanged — adding a student doesn't update these): `grep -n "dashboard-subgreeting\|9 classes this week" index.html`
 - Persistence layer alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs` (expect `25/25 PASS`)
 - Backup/restore round-trip alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-backup.mjs` (expect `19/19 PASS`)
+- Live counts + CBSE Recent Sessions alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-live-counts.mjs` (expect `50/50 PASS`)
 
 **Maintenance:** when an item ships or is retired, change its status here
 (CANDIDATE → SETTLED/RETIRED with a one-line outcome + pointer to the
