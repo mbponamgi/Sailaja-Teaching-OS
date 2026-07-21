@@ -39,7 +39,7 @@ record is exactly two places:
 | Where | What it records | Format |
 |---|---|---|
 | `git log` (commit bodies) | Changelog + root-cause record: what changed, why, how it was verified. | Conventional commit + body template (§2) |
-| `.claude/skills/` | Operating knowledge: how the app works, how to run/verify/debug it, teaching-domain reference. | 12-skill library, house format (§4) |
+| `.claude/skills/` | Operating knowledge: how the app works, how to run/verify/debug it, teaching-domain reference. | skill library (`ls .claude/skills/` for the current count — 10 as of 2026-07-21, was 7 complete + 2 broken stubs the day before), house format (§4) |
 | `README.md` | **Nothing yet.** Its entire content is `# friendly-robot` — the GitHub auto-generated repo name (the repo's real name is `sailaja-teaching-tuition-OS`). Candidate outline in §5; do not rewrite it unasked. | Honest gap |
 
 **The survival rule.** Chat transcripts, scratchpads, and PR comment threads
