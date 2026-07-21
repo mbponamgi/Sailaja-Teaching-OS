@@ -1,3 +1,20 @@
+// tweaks-panel.js — reusable settings-overlay component library. Vanilla
+// JS, no React, no build step (rewritten 2026-07-21, replacing the React
+// version — sailaja-os-frontier-and-method Item 2: this panel is ~10 simple
+// form controls, never needed React's reconciler). App-agnostic: knows
+// nothing about this specific app's pages/CSS vars — see index.html's
+// mountTweaks() for that composition.
+//
+// API shape: each control is `tweakX(containerEl, { label, value, onChange,
+// ... })` — builds its DOM into containerEl and wires native event
+// listeners directly to onChange. There is no virtual DOM and no
+// re-render loop: every control updates its own visual state (slider
+// position, toggle state, radio thumb) imperatively inside its own event
+// handler, exactly as a native <input> already does. createTweaksPanel()
+// rebuilds the panel body from scratch each time it opens (mirroring the
+// old React version's `if (!open) return null` full-unmount behavior), so
+// callers always see fresh values on open — no staleness to manage.
+
 const __TWEAKS_STYLE = `
   .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
     max-height:calc(100vh - 32px);display:flex;flex-direction:column;
@@ -90,275 +107,263 @@ const __TWEAKS_STYLE = `
   .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
   .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
 `;
-function useTweaks(defaults) {
-  const [values, setValues] = React.useState(defaults);
-  const setTweak = React.useCallback((keyOrEdits, val) => {
-    const edits = typeof keyOrEdits === "object" && keyOrEdits !== null ? keyOrEdits : { [keyOrEdits]: val };
-    setValues((prev) => ({ ...prev, ...edits }));
-    window.parent.postMessage({ type: "__edit_mode_set_keys", edits }, "*");
-  }, []);
-  return [values, setTweak];
-}
-function TweaksPanel({ title = "Tweaks", children }) {
-  const [open, setOpen] = React.useState(false);
-  const dragRef = React.useRef(null);
-  const offsetRef = React.useRef({ x: 16, y: 16 });
-  const PAD = 16;
-  const clampToViewport = React.useCallback(() => {
-    const panel = dragRef.current;
-    if (!panel) return;
-    const w = panel.offsetWidth, h = panel.offsetHeight;
-    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
-    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
-    offsetRef.current = {
-      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
-      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y))
-    };
-    panel.style.right = offsetRef.current.x + "px";
-    panel.style.bottom = offsetRef.current.y + "px";
-  }, []);
-  React.useEffect(() => {
-    if (!open) return;
-    clampToViewport();
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", clampToViewport);
-      return () => window.removeEventListener("resize", clampToViewport);
+
+// Minimal DOM-builder: el(tag, props, ...children). props: className,
+// style (object), data-*/aria-*/role (plain attrs), on<event> (lowercase,
+// e.g. onclick/onmousedown/oninput) wired via addEventListener.
+function el(tag, props, ...children) {
+  const node = document.createElement(tag);
+  if (props) {
+    for (const [k, v] of Object.entries(props)) {
+      if (v == null) continue;
+      if (k === 'className') node.className = v;
+      else if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+      else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
     }
-    const ro = new ResizeObserver(clampToViewport);
-    ro.observe(document.documentElement);
-    return () => ro.disconnect();
-  }, [open, clampToViewport]);
-  React.useEffect(() => {
-    const onMsg = (e) => {
-      const t = e?.data?.type;
-      if (t === "__activate_edit_mode") setOpen(true);
-      else if (t === "__deactivate_edit_mode") setOpen(false);
-    };
-    window.addEventListener("message", onMsg);
-    window.parent.postMessage({ type: "__edit_mode_available" }, "*");
-    return () => window.removeEventListener("message", onMsg);
-  }, []);
-  const dismiss = () => {
-    setOpen(false);
-    window.parent.postMessage({ type: "__edit_mode_dismissed" }, "*");
-  };
-  const onDragStart = (e) => {
-    const panel = dragRef.current;
-    if (!panel) return;
-    const r = panel.getBoundingClientRect();
-    const sx = e.clientX, sy = e.clientY;
-    const startRight = window.innerWidth - r.right;
-    const startBottom = window.innerHeight - r.bottom;
-    const move = (ev) => {
-      offsetRef.current = {
-        x: startRight - (ev.clientX - sx),
-        y: startBottom - (ev.clientY - sy)
-      };
-      clampToViewport();
-    };
-    const up = () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
-    };
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
-  };
-  if (!open) return null;
-  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("style", null, __TWEAKS_STYLE), /* @__PURE__ */ React.createElement(
-    "div",
-    {
-      ref: dragRef,
-      className: "twk-panel",
-      "data-noncommentable": "",
-      style: { right: offsetRef.current.x, bottom: offsetRef.current.y }
-    },
-    /* @__PURE__ */ React.createElement("div", { className: "twk-hd", onMouseDown: onDragStart }, /* @__PURE__ */ React.createElement("b", null, title), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        className: "twk-x",
-        "aria-label": "Close tweaks",
-        onMouseDown: (e) => e.stopPropagation(),
-        onClick: dismiss
-      },
-      "\u2715"
-    )),
-    /* @__PURE__ */ React.createElement("div", { className: "twk-body" }, children)
-  ));
+  }
+  children.flat().forEach(c => {
+    if (c == null) return;
+    node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  });
+  return node;
 }
-function TweakSection({ label, children }) {
-  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "twk-sect" }, label), children);
+
+function tweakRow(body, { label, value }, contentEl) {
+  const valueSpan = value != null ? el('span', { className: 'twk-val' }, String(value)) : null;
+  const lbl = el('div', { className: 'twk-lbl' }, el('span', null, label), valueSpan);
+  body.appendChild(el('div', { className: 'twk-row' }, lbl, contentEl));
+  return valueSpan;
 }
-function TweakRow({ label, value, children, inline = false }) {
-  return /* @__PURE__ */ React.createElement("div", { className: inline ? "twk-row twk-row-h" : "twk-row" }, /* @__PURE__ */ React.createElement("div", { className: "twk-lbl" }, /* @__PURE__ */ React.createElement("span", null, label), value != null && /* @__PURE__ */ React.createElement("span", { className: "twk-val" }, value)), children);
+
+function tweakSection(body, label) {
+  body.appendChild(el('div', { className: 'twk-sect' }, label));
 }
-function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = "", onChange }) {
-  return /* @__PURE__ */ React.createElement(TweakRow, { label, value: `${value}${unit}` }, /* @__PURE__ */ React.createElement(
-    "input",
-    {
-      type: "range",
-      className: "twk-slider",
-      min,
-      max,
-      step,
-      value,
-      onChange: (e) => onChange(Number(e.target.value))
-    }
-  ));
+
+function tweakSlider(body, { label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  const input = el('input', { type: 'range', className: 'twk-slider', min, max, step, value });
+  const valueSpan = tweakRow(body, { label, value: `${value}${unit}` }, input);
+  input.addEventListener('input', () => {
+    const v = Number(input.value);
+    if (valueSpan) valueSpan.textContent = `${v}${unit}`;
+    onChange(v);
+  });
 }
-function TweakToggle({ label, value, onChange }) {
-  return /* @__PURE__ */ React.createElement("div", { className: "twk-row twk-row-h" }, /* @__PURE__ */ React.createElement("div", { className: "twk-lbl" }, /* @__PURE__ */ React.createElement("span", null, label)), /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      type: "button",
-      className: "twk-toggle",
-      "data-on": value ? "1" : "0",
-      role: "switch",
-      "aria-checked": !!value,
-      onClick: () => onChange(!value)
-    },
-    /* @__PURE__ */ React.createElement("i", null)
-  ));
+
+function tweakToggle(body, { label, value, onChange }) {
+  const btn = el('button', {
+    type: 'button', className: 'twk-toggle', 'data-on': value ? '1' : '0',
+    role: 'switch', 'aria-checked': String(!!value),
+  }, el('i'));
+  btn.addEventListener('click', () => {
+    const next = btn.getAttribute('data-on') !== '1';
+    btn.setAttribute('data-on', next ? '1' : '0');
+    btn.setAttribute('aria-checked', String(next));
+    onChange(next);
+  });
+  const lbl = el('div', { className: 'twk-lbl' }, el('span', null, label));
+  body.appendChild(el('div', { className: 'twk-row twk-row-h' }, lbl, btn));
 }
-function TweakRadio({ label, value, options, onChange }) {
-  const trackRef = React.useRef(null);
-  const [dragging, setDragging] = React.useState(false);
-  const opts = options.map((o) => typeof o === "object" ? o : { value: o, label: o });
-  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+
+function tweakRadio(body, { label, value, options, onChange }) {
+  const opts = options.map(o => (typeof o === 'object' ? o : { value: o, label: o }));
   const n = opts.length;
-  const valueRef = React.useRef(value);
-  valueRef.current = value;
-  const segAt = (clientX) => {
-    const r = trackRef.current.getBoundingClientRect();
+  let current = value;
+  const track = el('div', { role: 'radiogroup', className: 'twk-seg' });
+  const thumb = el('div', { className: 'twk-seg-thumb' });
+  track.appendChild(thumb);
+  const buttons = opts.map(o => {
+    const b = el('button', { type: 'button', role: 'radio', 'aria-checked': String(o.value === current) }, o.label);
+    track.appendChild(b);
+    return b;
+  });
+  const idxOf = v => Math.max(0, opts.findIndex(o => o.value === v));
+  const positionThumb = idx => {
+    thumb.style.left = `calc(2px + ${idx} * (100% - 4px) / ${n})`;
+    thumb.style.width = `calc((100% - 4px) / ${n})`;
+  };
+  const setSelected = v => {
+    current = v;
+    buttons.forEach((b, i) => b.setAttribute('aria-checked', String(opts[i].value === v)));
+    positionThumb(idxOf(v));
+  };
+  positionThumb(idxOf(current));
+  const segAt = clientX => {
+    const r = track.getBoundingClientRect();
     const inner = r.width - 4;
     const i = Math.floor((clientX - r.left - 2) / inner * n);
     return opts[Math.max(0, Math.min(n - 1, i))].value;
   };
-  const onPointerDown = (e) => {
-    setDragging(true);
+  track.addEventListener('pointerdown', e => {
+    track.classList.add('dragging');
     const v0 = segAt(e.clientX);
-    if (v0 !== valueRef.current) onChange(v0);
-    const move = (ev) => {
-      if (!trackRef.current) return;
+    if (v0 !== current) { setSelected(v0); onChange(v0); }
+    const move = ev => {
       const v = segAt(ev.clientX);
-      if (v !== valueRef.current) onChange(v);
+      if (v !== current) { setSelected(v); onChange(v); }
     };
     const up = () => {
-      setDragging(false);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
+      track.classList.remove('dragging');
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-  };
-  return /* @__PURE__ */ React.createElement(TweakRow, { label }, /* @__PURE__ */ React.createElement(
-    "div",
-    {
-      ref: trackRef,
-      role: "radiogroup",
-      onPointerDown,
-      className: dragging ? "twk-seg dragging" : "twk-seg"
-    },
-    /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        className: "twk-seg-thumb",
-        style: {
-          left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
-          width: `calc((100% - 4px) / ${n})`
-        }
-      }
-    ),
-    opts.map((o) => /* @__PURE__ */ React.createElement("button", { key: o.value, type: "button", role: "radio", "aria-checked": o.value === value }, o.label))
-  ));
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+  tweakRow(body, { label }, track);
 }
-function TweakSelect({ label, value, options, onChange }) {
-  return /* @__PURE__ */ React.createElement(TweakRow, { label }, /* @__PURE__ */ React.createElement("select", { className: "twk-field", value, onChange: (e) => onChange(e.target.value) }, options.map((o) => {
-    const v = typeof o === "object" ? o.value : o;
-    const l = typeof o === "object" ? o.label : o;
-    return /* @__PURE__ */ React.createElement("option", { key: v, value: v }, l);
-  })));
+
+function tweakSelect(body, { label, value, options, onChange }) {
+  const select = el('select', { className: 'twk-field' });
+  options.forEach(o => {
+    const v = typeof o === 'object' ? o.value : o;
+    const l = typeof o === 'object' ? o.label : o;
+    const opt = el('option', { value: v }, l);
+    if (v === value) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.addEventListener('change', () => onChange(select.value));
+  tweakRow(body, { label }, select);
 }
-function TweakText({ label, value, placeholder, onChange }) {
-  return /* @__PURE__ */ React.createElement(TweakRow, { label }, /* @__PURE__ */ React.createElement(
-    "input",
-    {
-      className: "twk-field",
-      type: "text",
-      value,
-      placeholder,
-      onChange: (e) => onChange(e.target.value)
-    }
-  ));
+
+function tweakText(body, { label, value, placeholder, onChange }) {
+  const input = el('input', { className: 'twk-field', type: 'text', value: value || '', placeholder });
+  input.addEventListener('input', () => onChange(input.value));
+  tweakRow(body, { label }, input);
 }
-function TweakNumber({ label, value, min, max, step = 1, unit = "", onChange }) {
-  const clamp = (n) => {
+
+function tweakNumber(body, { label, value, min, max, step = 1, unit = '', onChange }) {
+  const clamp = n => {
     if (min != null && n < min) return min;
     if (max != null && n > max) return max;
     return n;
   };
-  const startRef = React.useRef({ x: 0, val: 0 });
-  const onScrubStart = (e) => {
+  const input = el('input', { type: 'number', value, min, max, step });
+  input.addEventListener('change', () => onChange(clamp(Number(input.value))));
+  const lblSpan = el('span', { className: 'twk-num-lbl' }, label);
+  lblSpan.addEventListener('pointerdown', e => {
     e.preventDefault();
-    startRef.current = { x: e.clientX, val: value };
-    const decimals = (String(step).split(".")[1] || "").length;
-    const move = (ev) => {
-      const dx = ev.clientX - startRef.current.x;
-      const raw = startRef.current.val + dx * step;
+    const startX = e.clientX;
+    const startVal = Number(input.value);
+    const decimals = (String(step).split('.')[1] || '').length;
+    const move = ev => {
+      const dx = ev.clientX - startX;
+      const raw = startVal + dx * step;
       const snapped = Math.round(raw / step) * step;
-      onChange(clamp(Number(snapped.toFixed(decimals))));
+      const clamped = clamp(Number(snapped.toFixed(decimals)));
+      input.value = clamped;
+      onChange(clamped);
     };
     const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-  };
-  return /* @__PURE__ */ React.createElement("div", { className: "twk-num" }, /* @__PURE__ */ React.createElement("span", { className: "twk-num-lbl", onPointerDown: onScrubStart }, label), /* @__PURE__ */ React.createElement(
-    "input",
-    {
-      type: "number",
-      value,
-      min,
-      max,
-      step,
-      onChange: (e) => onChange(clamp(Number(e.target.value)))
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+  const unitSpan = unit ? el('span', { className: 'twk-num-unit' }, unit) : null;
+  body.appendChild(el('div', { className: 'twk-num' }, lblSpan, input, unitSpan));
+}
+
+function tweakColor(body, { label, value, onChange }) {
+  const input = el('input', { type: 'color', className: 'twk-swatch', value });
+  input.addEventListener('input', () => onChange(input.value));
+  const lbl = el('div', { className: 'twk-lbl' }, el('span', null, label));
+  body.appendChild(el('div', { className: 'twk-row twk-row-h' }, lbl, input));
+}
+
+function tweakButton(body, { label, onClick, secondary = false }) {
+  const btn = el('button', { type: 'button', className: secondary ? 'twk-btn secondary' : 'twk-btn' }, label);
+  btn.addEventListener('click', onClick);
+  body.appendChild(btn);
+}
+
+// createTweaksPanel(rootEl, { title, buildBody }) — mounts into rootEl.
+// Stays closed until a parent frame sends postMessage({type:
+// '__activate_edit_mode'}); rebuilds the whole panel body via buildBody(el)
+// fresh on every open (mirrors the old React version's full unmount/remount
+// on close, so callers never need to worry about stale DOM).
+function createTweaksPanel(rootEl, { title = 'Tweaks', buildBody }) {
+  let open = false;
+  let offset = { x: 16, y: 16 };
+  let panelEl = null;
+  let cleanupResize = null;
+  const PAD = 16;
+
+  function clampToViewport() {
+    if (!panelEl) return;
+    const w = panelEl.offsetWidth, h = panelEl.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offset = {
+      x: Math.min(maxRight, Math.max(PAD, offset.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offset.y)),
+    };
+    panelEl.style.right = offset.x + 'px';
+    panelEl.style.bottom = offset.y + 'px';
+  }
+
+  function onDragStart(e) {
+    if (!panelEl) return;
+    const r = panelEl.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = ev => {
+      offset = { x: startRight - (ev.clientX - sx), y: startBottom - (ev.clientY - sy) };
+      clampToViewport();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+
+  function dismiss() {
+    open = false;
+    renderClosed();
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  }
+
+  function renderOpen() {
+    rootEl.innerHTML = '';
+    const styleEl = el('style', null, __TWEAKS_STYLE);
+    const closeBtn = el('button', {
+      className: 'twk-x', 'aria-label': 'Close tweaks',
+      onmousedown: e => e.stopPropagation(), onclick: dismiss,
+    }, '✕');
+    const hd = el('div', { className: 'twk-hd', onmousedown: onDragStart }, el('b', null, title), closeBtn);
+    const body = el('div', { className: 'twk-body' });
+    buildBody(body);
+    panelEl = el('div', {
+      className: 'twk-panel', 'data-noncommentable': '',
+      style: { right: offset.x + 'px', bottom: offset.y + 'px' },
+    }, hd, body);
+    rootEl.appendChild(styleEl);
+    rootEl.appendChild(panelEl);
+    clampToViewport();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', clampToViewport);
+      cleanupResize = () => window.removeEventListener('resize', clampToViewport);
+    } else {
+      const ro = new ResizeObserver(clampToViewport);
+      ro.observe(document.documentElement);
+      cleanupResize = () => ro.disconnect();
     }
-  ), unit && /* @__PURE__ */ React.createElement("span", { className: "twk-num-unit" }, unit));
+  }
+
+  function renderClosed() {
+    rootEl.innerHTML = '';
+    if (cleanupResize) { cleanupResize(); cleanupResize = null; }
+    panelEl = null;
+  }
+
+  window.addEventListener('message', e => {
+    const t = e && e.data && e.data.type;
+    if (t === '__activate_edit_mode') { open = true; renderOpen(); }
+    else if (t === '__deactivate_edit_mode') { open = false; renderClosed(); }
+  });
+  window.parent.postMessage({ type: '__edit_mode_available' }, '*');
 }
-function TweakColor({ label, value, onChange }) {
-  return /* @__PURE__ */ React.createElement("div", { className: "twk-row twk-row-h" }, /* @__PURE__ */ React.createElement("div", { className: "twk-lbl" }, /* @__PURE__ */ React.createElement("span", null, label)), /* @__PURE__ */ React.createElement(
-    "input",
-    {
-      type: "color",
-      className: "twk-swatch",
-      value,
-      onChange: (e) => onChange(e.target.value)
-    }
-  ));
-}
-function TweakButton({ label, onClick, secondary = false }) {
-  return /* @__PURE__ */ React.createElement(
-    "button",
-    {
-      type: "button",
-      className: secondary ? "twk-btn secondary" : "twk-btn",
-      onClick
-    },
-    label
-  );
-}
-Object.assign(window, {
-  useTweaks,
-  TweaksPanel,
-  TweakSection,
-  TweakRow,
-  TweakSlider,
-  TweakToggle,
-  TweakRadio,
-  TweakSelect,
-  TweakText,
-  TweakNumber,
-  TweakColor,
-  TweakButton
-});

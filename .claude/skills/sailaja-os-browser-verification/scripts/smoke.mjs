@@ -40,11 +40,11 @@ try {
   // the dead-block bug (or something exactly like it) has come back.
   check('addNewStudent is a real function', await page.evaluate(() => typeof window.addNewStudent), 'function');
   check('teach_os_students is written on first load', await page.evaluate(k => localStorage.getItem(k) !== null, DB_KEY), true);
-  check('tweaks-panel.js globals load (plain <script src>)',
-    await page.evaluate(() => typeof window.useTweaks), 'function');
-  // TweaksPanel renders null until externally activated via postMessage
+  check('tweaks-panel.js globals load (plain <script src>, vanilla JS since 2026-07-21 — no React)',
+    await page.evaluate(() => typeof window.createTweaksPanel), 'function');
+  // The panel renders nothing until externally activated via postMessage
   // (an edit-mode overlay, by design — not a bug) — activate it to prove
-  // the (now JSX-free) TweaksApp component tree actually mounts.
+  // the vanilla control tree actually builds and mounts.
   await page.evaluate(() => window.postMessage({ type: '__activate_edit_mode' }, '*'));
   await page.waitForTimeout(300);
   check('tweaks panel renders once activated', await page.evaluate(() => document.getElementById('tweaks-root').children.length), n => n > 0);

@@ -154,34 +154,51 @@ the permanent suite).
 **Execution record:** `sailaja-os-daily-use-campaign` Phases 1-3 marked done
 there; this entry records the roadmap-level outcome.
 
-## Item 2 — Offline-complete app (CANDIDATE)
+## Item 2 — Offline-complete app (DONE 2026-07-21)
 
-**Why it matters for daily use:** tuition happens at homes with flaky Wi-Fi.
-Verified: the app makes exactly three external requests (`index.html:8–10`) —
-Google Fonts, and React + ReactDOM 18.3.1 **development** builds from unpkg.
-Offline today, fonts fall back and the tweaks panel dies; the owner's
-direction (recorded in `sailaja-os-change-control`) is vendor-locally /
-no-external-network. Ties to the daily-use campaign's Phase 3.
+**Why it mattered for daily use:** tuition happens at homes with flaky
+Wi-Fi. Was: three external requests (Google Fonts + React/ReactDOM 18.3.1
+**development** builds from unpkg) — offline, fonts fell back and the
+tweaks panel died. Owner direction (`sailaja-os-change-control`):
+vendor-locally / no-external-network.
 
-**First three steps in this repo:**
+**What actually happened, vs. the three steps originally planned:**
 
-1. Decide React's fate first (it may be removable): its only consumer is
-   `tweaks-panel.js` plus the dead block. Either vendor
-   `react`/`react-dom` production UMD builds locally, or rewrite the tweaks
-   panel React-free — decide with the owner, don't drift into it.
-2. Vendor the two fonts (Instrument Serif, Figtree) as local woff2 +
-   `@font-face`, replacing the `fonts.googleapis.com` link.
-3. Verify offline-complete: Playwright run with **all network routes to
-   non-localhost aborted**, asserting zero failed requests, zero console
-   errors, panel mounts, fonts render.
+1. **React's fate, decided**: removed entirely, not vendored. Asked the
+   owner directly — the deciding argument was that the tweaks panel (~10
+   simple form controls) never needed React's reconciler, AND on a
+   standalone deployed page it can only open via a `postMessage` from a
+   parent frame that will never exist (`sailaja-os-architecture-contract`
+   W6), so a vendored React would have been payload with no path to ever
+   rendering anything. `tweaks-panel.jsx` deleted; `tweaks-panel.js`
+   rewritten as vanilla JS (`createTweaksPanel` + `tweakSlider`/`tweakToggle`/
+   etc. builder functions) — same visual/interaction behavior, verified
+   control-by-control.
+2. **Fonts vendored**: Instrument Serif + Figtree as local `.woff2` under
+   `vendor/fonts/`, replacing the `fonts.googleapis.com` link. Only the
+   "latin" Unicode subset — verified sufficient for this app's actual
+   content (French accented characters all fall in Latin-1 Supplement,
+   which "latin" covers; "latin-ext" is for Eastern European diacritics
+   this app never uses). Figtree ships as one variable-font file covering
+   all 5 weights (that's how Google itself serves it), not 5 near-duplicate
+   files.
+3. **Offline-complete, verified**: `sailaja-os-browser-verification`'s new
+   `verify-offline.mjs` runs with all network routes to non-localhost
+   aborted.
 
-**You have a result when…** the network-blocked Playwright run passes with
-**0 external requests attempted and 0 console errors**, and the normal
-(network-on) smoke run is byte-identical in behavior. Zero is a predicted
-number too.
+**Result, measured** (this IS "you have a result when..." — met exactly):
+the network-blocked Playwright run passed with **0 external requests
+attempted and 0 console errors**, plus the app fully functional (15
+students scraped, `addNewStudent` callable, tweaks panel mounts, fonts
+confirmed loaded via `document.fonts`) — 10/10 PASS. The normal (network-on)
+suite (`smoke.mjs`, `verify-crud.mjs`, `verify-content-crud.mjs`,
+`verify-tweaks-panel.mjs`) all stayed green throughout, confirming
+behavior is unchanged, not just "network-independent."
 
-**Gates:** change-control class (e) (vendor — removing CDNs is aligned,
-adding any is owner-sign-off), browser-verification.
+**Gates passed:** change-control class (e) (owner sign-off obtained for
+the React-removal decision specifically, since it was a real fork in the
+road, not just "vendor the CDN as-is"), browser-verification (`10/10`,
+`17/17` for the panel rewrite specifically).
 
 ## Item 3 — Fees & payments ledger (CANDIDATE — pure greenfield)
 
@@ -476,7 +493,7 @@ relying on volatile facts:
 - No separate attendance feature (unchanged — by design, see Item 1):
   `grep -ci attendance index.html` (expect 0)
 - No export/backup feature yet (Item 4, unchanged): `grep -ni "export\|backup\|download" index.html` (expect 0 feature hits)
-- External requests still lines 8–10 (Item 2, unchanged): `grep -n "https://" index.html`
+- Zero external requests (Item 2 DONE 2026-07-21 — expect no hits): `grep -n "https://" index.html`
 - Live localStorage keys (now three, was two): `grep -n "localStorage" index.html`
 - Hardcoded counts (Item 5, unchanged — adding a student doesn't update these): `grep -n "nav-badge\|9 classes this week" index.html`
 - Persistence layer alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs` (expect `25/25 PASS`)

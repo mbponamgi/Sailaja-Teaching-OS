@@ -5,11 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sailaja's Teaching OS — French</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇫🇷</text></svg>">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Figtree:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="tweaks-panel.js"></script>
 <style>
+/* Vendored locally 2026-07-21 (sailaja-os-frontier-and-method Item 2) —
+   replaces the fonts.googleapis.com <link>. Figtree ships as one variable
+   file covering weights 300-700 (Google serves it that way; the previous
+   CDN request pulled 5 near-duplicate @font-face declarations for what is
+   actually a single file). Only the "latin" Unicode subset is vendored —
+   verified sufficient for this app's French content: French accented
+   characters (é, è, à, ç, ô, œ, etc.) all fall inside Latin-1 Supplement
+   (U+0000-00FF) plus U+0152-0153, which "latin" covers; "latin-ext" is for
+   Eastern European diacritics this app never uses. */
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('vendor/fonts/figtree-variable-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('vendor/fonts/instrument-serif-400-normal-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('vendor/fonts/instrument-serif-400-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --bg: #f5f2ed;
@@ -1824,89 +1854,89 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "teacherName": "Sailaja"
 }/*EDITMODE-END*/;
 
-// JSX-free by design (sailaja-os-change-control non-negotiable #3): this repo
-// ships no Babel runtime, so this component is written as plain
-// React.createElement calls. It is the direct fix for
-// sailaja-os-failure-archaeology Incident 1 — the previous <script
-// type="text/babel"> version of this exact component never executed.
-const h = React.createElement;
-
-function TweaksApp() {
-  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
-
-  React.useEffect(() => {
-    // accent color
-    document.documentElement.style.setProperty('--french-blue', tweaks.accentColor);
-    // derive mid from accent
-    document.documentElement.style.setProperty('--french-blue-mid', tweaks.accentColor);
-  }, [tweaks.accentColor]);
-
-  React.useEffect(() => {
+// No React (removed 2026-07-21 — sailaja-os-frontier-and-method Item 2):
+// this panel is ~10 simple form controls, never needed a reconciler, and
+// on a standalone deployed page it can only ever open via a postMessage
+// from a parent frame that won't exist (architecture-contract W6) — so it
+// was pure unused payload weight. tweaks-panel.js now ships the vanilla
+// control-builder API (tweakSlider, tweakToggle, etc.) this composes.
+// The dead-<script type="text/babel">-block incident this used to fix
+// (sailaja-os-failure-archaeology Incident 1) is unaffected by this
+// change — that fix was about the block executing at all, not about which
+// UI toolkit ran inside it.
+const TWEAK_EFFECTS = {
+  accentColor(value) {
+    document.documentElement.style.setProperty('--french-blue', value);
+    document.documentElement.style.setProperty('--french-blue-mid', value);
+  },
+  bgTone(value) {
     const bgMap = { warm: '#f5f2ed', cool: '#f0f2f5', neutral: '#f3f3f3' };
     const surf2Map = { warm: '#ede9e1', cool: '#e5e8ed', neutral: '#ebebeb' };
     const borderMap = { warm: '#ddd8ce', cool: '#d4d8de', neutral: '#d9d9d9' };
-    document.documentElement.style.setProperty('--bg', bgMap[tweaks.bgTone]);
-    document.documentElement.style.setProperty('--surface2', surf2Map[tweaks.bgTone]);
-    document.documentElement.style.setProperty('--border', borderMap[tweaks.bgTone]);
-  }, [tweaks.bgTone]);
-
-  React.useEffect(() => {
-    document.documentElement.style.setProperty('--sidebar-w', tweaks.sidebarWidth + 'px');
+    document.documentElement.style.setProperty('--bg', bgMap[value]);
+    document.documentElement.style.setProperty('--surface2', surf2Map[value]);
+    document.documentElement.style.setProperty('--border', borderMap[value]);
+  },
+  sidebarWidth(value) {
+    document.documentElement.style.setProperty('--sidebar-w', value + 'px');
     const sidebar = document.querySelector('.sidebar');
     const main = document.querySelector('.main');
-    if (sidebar) sidebar.style.width = tweaks.sidebarWidth + 'px';
-    if (main) main.style.marginLeft = tweaks.sidebarWidth + 'px';
-  }, [tweaks.sidebarWidth]);
-
-  React.useEffect(() => {
-    document.querySelectorAll('.student-parent').forEach(el => {
-      el.style.display = tweaks.showParentContact ? '' : 'none';
-    });
-  }, [tweaks.showParentContact]);
-
-  React.useEffect(() => {
-    document.querySelectorAll('.mini-pct').forEach(el => {
-      el.style.display = tweaks.showProgressPct ? '' : 'none';
-    });
-  }, [tweaks.showProgressPct]);
-
-  React.useEffect(() => {
-    document.querySelectorAll('.session-item').forEach(el => {
-      el.style.padding = tweaks.compactSessions ? '6px 10px' : '';
-    });
-  }, [tweaks.compactSessions]);
-
-  React.useEffect(() => {
-    updateGreeting(tweaks.teacherName);
-  }, [tweaks.teacherName]);
-
-  return h(TweaksPanel, null,
-    h(TweakSection, { label: 'Appearance' },
-      h(TweakColor, { id: 'accentColor', label: 'Brand / accent colour', value: tweaks.accentColor, onChange: v => setTweak('accentColor', v) }),
-      h(TweakRadio, { id: 'bgTone', label: 'Background tone', value: tweaks.bgTone, onChange: v => setTweak('bgTone', v),
-        options: [{value:'warm',label:'Warm'},{value:'cool',label:'Cool'},{value:'neutral',label:'Neutral'}] }),
-      h(TweakSlider, { id: 'sidebarWidth', label: 'Sidebar width', value: tweaks.sidebarWidth, min: 180, max: 280, step: 4, onChange: v => setTweak('sidebarWidth', v) })
-    ),
-    h(TweakSection, { label: 'Student Table' },
-      h(TweakToggle, { id: 'showParentContact', label: 'Show parent contact', value: tweaks.showParentContact, onChange: v => setTweak('showParentContact', v) }),
-      h(TweakToggle, { id: 'showProgressPct', label: 'Show progress %', value: tweaks.showProgressPct, onChange: v => setTweak('showProgressPct', v) })
-    ),
-    h(TweakSection, { label: 'Layout' },
-      h(TweakToggle, { id: 'compactSessions', label: 'Compact session list', value: tweaks.compactSessions, onChange: v => setTweak('compactSessions', v) })
-    ),
-    h(TweakSection, { label: 'Personalisation' },
-      h(TweakText, { id: 'teacherName', label: 'Teacher name (dashboard greeting)', value: tweaks.teacherName, onChange: v => setTweak('teacherName', v) })
-    )
-  );
-}
+    if (sidebar) sidebar.style.width = value + 'px';
+    if (main) main.style.marginLeft = value + 'px';
+  },
+  showParentContact(value) {
+    document.querySelectorAll('.student-parent').forEach(el => { el.style.display = value ? '' : 'none'; });
+  },
+  showProgressPct(value) {
+    document.querySelectorAll('.mini-pct').forEach(el => { el.style.display = value ? '' : 'none'; });
+  },
+  compactSessions(value) {
+    document.querySelectorAll('.session-item').forEach(el => { el.style.padding = value ? '6px 10px' : ''; });
+  },
+  teacherName(value) {
+    updateGreeting(value);
+  },
+};
 
 function mountTweaks() {
-  const el = document.getElementById('tweaks-root');
-  if (!el || typeof useTweaks === 'undefined') {
+  const root = document.getElementById('tweaks-root');
+  if (!root || typeof createTweaksPanel === 'undefined') {
     setTimeout(mountTweaks, 50);
     return;
   }
-  ReactDOM.createRoot(el).render(h(TweaksApp));
+
+  const tweaks = Object.assign({}, TWEAK_DEFAULTS);
+  function setTweak(key, value) {
+    tweaks[key] = value;
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: value } }, '*');
+    TWEAK_EFFECTS[key](value);
+  }
+  // Apply every default once at mount — mirrors the old version's
+  // useEffect-on-initial-render behavior for each tweak.
+  Object.keys(TWEAK_DEFAULTS).forEach(key => TWEAK_EFFECTS[key](tweaks[key]));
+
+  createTweaksPanel(root, {
+    title: 'Tweaks',
+    buildBody(body) {
+      tweakSection(body, 'Appearance');
+      tweakColor(body, { label: 'Brand / accent colour', value: tweaks.accentColor, onChange: v => setTweak('accentColor', v) });
+      tweakRadio(body, {
+        label: 'Background tone', value: tweaks.bgTone, onChange: v => setTweak('bgTone', v),
+        options: [{ value: 'warm', label: 'Warm' }, { value: 'cool', label: 'Cool' }, { value: 'neutral', label: 'Neutral' }],
+      });
+      tweakSlider(body, { label: 'Sidebar width', value: tweaks.sidebarWidth, min: 180, max: 280, step: 4, onChange: v => setTweak('sidebarWidth', v) });
+
+      tweakSection(body, 'Student Table');
+      tweakToggle(body, { label: 'Show parent contact', value: tweaks.showParentContact, onChange: v => setTweak('showParentContact', v) });
+      tweakToggle(body, { label: 'Show progress %', value: tweaks.showProgressPct, onChange: v => setTweak('showProgressPct', v) });
+
+      tweakSection(body, 'Layout');
+      tweakToggle(body, { label: 'Compact session list', value: tweaks.compactSessions, onChange: v => setTweak('compactSessions', v) });
+
+      tweakSection(body, 'Personalisation');
+      tweakText(body, { label: 'Teacher name (dashboard greeting)', value: tweaks.teacherName, onChange: v => setTweak('teacherName', v) });
+    },
+  });
 }
 mountTweaks();
 

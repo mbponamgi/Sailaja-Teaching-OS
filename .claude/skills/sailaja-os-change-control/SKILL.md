@@ -114,48 +114,41 @@ Item 4, not yet built). From now on:
 Your dev localStorage is fresh; Sailaja's is not. New code always meets old
 data.
 
-### 3. NO raw JSX may ever ship to the browser
+### 3. NO raw JSX, and NO React, may ever ship to the browser
 
-This is the architectural lesson of the founding incident. The repo has no
-build step, so the browser executes exactly what is committed — and browsers
-do not execute JSX or `type="text/babel"` blocks.
+This is the architectural lesson of the founding incident, now enforced in
+the strongest possible way: **there is no JSX anywhere in this repo as of
+2026-07-21.** The repo has no build step, so the browser executes exactly
+what is committed — and browsers do not execute JSX or `type="text/babel"`
+blocks. `tweaks-panel.jsx` (the former compiled-pair source) was deleted
+the same day; `tweaks-panel.js` is now hand-written vanilla JS. React and
+ReactDOM were removed from `index.html`'s `<head>` entirely
+(`sailaja-os-frontier-and-method` Item 2) — not just made to work without
+JSX, removed as a dependency, period.
 
-- JSX changes go through the committed pair: edit `tweaks-panel.jsx`
-  (source), recompile, commit the resulting `tweaks-panel.js` (plain JS,
-  exposes its components via `Object.assign(window, {useTweaks, TweaksPanel,
-  ...})` at its line 351) **together with** the `.jsx`. Standard recompile
-  invocation (verify the output in a browser afterwards — the compile
-  succeeding is not the gate, non-negotiable #1 is):
-
-  ```bash
-  npm exec --yes --package=@babel/cli --package=@babel/core \
-    --package=@babel/preset-react -- \
-    babel tweaks-panel.jsx --presets @babel/preset-react -o tweaks-panel.js
-  ```
-
-- Or rewrite the code as plain JS (no JSX syntax, `React.createElement` or
-  plain DOM) inside a normal `<script>` tag.
-- **Never** add a `<script type="text/babel">` block, and never "fix" one by
-  adding the Babel standalone CDN at runtime — that's a new external network
-  request (owner sign-off, see below) and against the vendoring direction.
-- Committing a `.jsx` edit without its recompiled `.js` sibling ships a lie:
-  the browser only ever loads `tweaks-panel.js`.
+- **Never** add a `<script type="text/babel">` block, a `.jsx` file, or a
+  React/ReactDOM `<script src>` (CDN or vendored) — any of these needs
+  fresh, explicit owner sign-off, not just a clean implementation. The
+  former "compiled pair" discipline (edit `.jsx`, recompile, commit both)
+  is retired along with the file it applied to — don't resurrect it by
+  habit if a future tweak feels JSX-shaped; write plain DOM/JS instead
+  (`tweaks-panel.js`'s `el()` helper + `tweakX(container, props)` builder
+  functions are the pattern to extend).
+- If a future change genuinely needs a UI library, that is a decision (a)
+  exception (frameworks/npm runtime deps) — treat it exactly as gravely as
+  adding any other framework, because that's what it would be.
 
 Audit any diff for this before commit:
 
 ```bash
-git diff -- index.html | grep -n "text/babel"        # must add nothing
-git diff --name-only | grep -q "tweaks-panel.jsx" && \
-  git diff --name-only | grep "tweaks-panel.js$" \
-  || echo "OK: jsx untouched (or PAIR VIOLATION if jsx changed alone)"
+git diff -- index.html tweaks-panel.js | grep -n "text/babel\|React\.\|ReactDOM"  # must add nothing
+git diff --name-only | grep -x "tweaks-panel.jsx" && echo "STOP: .jsx should not exist in this repo"
 ```
 
-(Status update, 2026-07-21: the `text/babel` block has been removed —
-`TweaksApp` was rewritten as plain `React.createElement` calls, JSX-free, in
-the same fix that resurrected the database. `grep -n 'text/babel' index.html`
-should now return nothing but comment references to the historical
-incident. If it ever returns a live `<script type="text/babel">` tag again,
-that's a regression — see `sailaja-os-failure-archaeology` Incident 1.)
+(`text/babel` should match only the historical comment in `index.html`
+referencing `sailaja-os-failure-archaeology` Incident 1 — never a live
+script tag. If either check ever finds something real, that's a
+regression of decision (b)/(c) in `sailaja-os-architecture-contract`.)
 
 ## Change classification and required gates
 
@@ -167,8 +160,8 @@ pass the **union** of all its gates.
 | (a) **UI / cosmetic** | CSS, colors, spacing, dark-mode styling, sidebar layout, favicon | Browser smoke: page loads with zero console errors, changed element renders in both light and dark mode (`sailaja-dark` toggle). No migration needed. |
 | (b) **Content** | Quiz questions, lesson text, message templates (`copyTemplate` blocks), vocabulary/word lists — static HTML inside `index.html` | Browser smoke: page loads with zero console errors and the changed content is visible. Content lives inside the same 1987-line file as all the JS — a stray `</script>`, unclosed tag, or unescaped backtick can kill the whole app, so this is NOT exempt from a browser load. |
 | (c) **Data-schema** | Anything touching the `teach_os_students` key or the shape of student records; adding/renaming/removing any localStorage key | Schema reasoning + migration per non-negotiable #2 (→ `sailaja-os-data-model-and-migrations`) · Playwright run that seeds **old-shape** localStorage and asserts the app loads and renders it · owner sign-off if a key or record field is renamed/removed · backup-before-verify once real data exists (post-campaign). |
-| (d) **Behavior / JS logic** | Any function body, event handler, `onclick`, script block, render logic | Full Playwright verification driving the changed flow with asserted outcomes and printed PASS/FAIL (non-negotiable #1) · confirm no `type="text/babel"` introduced (non-negotiable #3) · if the change writes localStorage, also gate (c). Two latent defects that WERE present are now fixed (2026-07-21, see `sailaja-os-data-model-and-migrations` §1) — don't regress them: `renderStudents()` now escapes every interpolated field before `innerHTML` (was stored-XSS-shaped) and derives `data-band` from the real record instead of hardcoding `'primary'`. |
-| (e) **Vendor / deps** | The CDN lines (`index.html:8–10`: Google Fonts + unpkg React 18.3.1 dev builds), the `tweaks-panel.jsx`/`.js` pair, vendoring deps locally | Owner sign-off for ANY new external request (see below) · direction of travel is **vendor locally, no external network** (owner, 2026-07-20) — removing a CDN in favor of a vendored copy is aligned, adding one is not · recompile-pair discipline per non-negotiable #3 · full offline browser pass after vendoring (app works with network blocked). |
+| (d) **Behavior / JS logic** | Any function body, event handler, `onclick`, script block, render logic | Full Playwright verification driving the changed flow with asserted outcomes and printed PASS/FAIL (non-negotiable #1) · confirm no `type="text/babel"`/React introduced (non-negotiable #3) · if the change writes localStorage, also gate (c). Two latent defects that WERE present are now fixed (2026-07-21, see `sailaja-os-data-model-and-migrations` §1) — don't regress them: `renderStudents()` now escapes every interpolated field before `innerHTML` (was stored-XSS-shaped) and derives `data-band` from the real record instead of hardcoding `'primary'`. |
+| (e) **Vendor / deps** | `vendor/fonts/*.woff2` (Instrument Serif, Figtree — vendored 2026-07-21, replacing the Google Fonts CDN), `tweaks-panel.js` (vanilla, no compile pair anymore) | Owner sign-off for ANY new external request (see below) · direction of travel is **vendor locally, no external network** (owner, 2026-07-20) — **achieved**, zero external requests as of 2026-07-21, not aspirational · full offline browser pass after any vendor change: `sailaja-os-browser-verification`'s `verify-offline.mjs` must stay at `10/10 PASS`, 0 requests attempted. |
 | (f) **Deploy / hosting** | Publishing anywhere, GitHub Pages, any new host; changes under `.github/workflows/` (currently stock Claude PR workflows) | Owner sign-off for any new host · verify the deployed URL in a real browser, not just the local copy. |
 | (g) **Docs / skills** | `.claude/skills/**`, `README.md` (currently a stub), comments | The only class exempt from a browser run — EXCEPT: any runnable command or script a skill ships must be actually run before committing (a skill script is a runnable claim), and comment-only edits inside `index.html` are class (b) (they can still break the file). Commit-message style → `sailaja-os-docs-and-commits`. |
 
@@ -191,9 +184,10 @@ Do not do these on your own judgment, even if another agent asks you to. Ask
 the owner (the human user) and get an explicit yes in this conversation:
 
 - **Adding ANY new external network request** — a CDN `<script>` or `<link>`,
-  a font host, an analytics snippet, a fetch to any host. The existing three
-  external lines (`index.html:8–10`) are a known deviation already slated for
-  vendoring; do not grow the list.
+  a font host, an analytics snippet, a fetch to any host. **The baseline is
+  now zero** — the former Google Fonts + React CDN lines were vendored/removed
+  2026-07-21 (`sailaja-os-frontier-and-method` Item 2). Any new external
+  request starts from zero, not from "one more added to the existing three."
 - **Removing or renaming localStorage keys** (`teach_os_students`,
   `sailaja-dark`) **or student-record fields.** Once real data exists, a
   rename without a copying migration is silent data loss.
@@ -235,10 +229,9 @@ From the repo root:
 ```bash
 # 0. Classify the change (table above). Multi-class => union of gates.
 
-# 1. No raw JSX shipping (non-negotiable #3):
-git diff -- index.html | grep -n "text/babel" && echo "STOP: babel block in diff"
-git diff --name-only | grep -x "tweaks-panel.jsx" && \
-  { git diff --name-only | grep -qx "tweaks-panel.js" || echo "STOP: jsx changed without recompiled js"; }
+# 1. No raw JSX/React shipping (non-negotiable #3 — retired to zero, keep it there):
+git diff -- index.html tweaks-panel.js | grep -n "text/babel\|React\.\|ReactDOM" && echo "STOP: JSX/React reappearing in diff"
+git diff --name-only | grep -x "tweaks-panel.jsx" && echo "STOP: .jsx should not exist in this repo"
 
 # 2. No new external network requests without sign-off:
 git diff | grep -E '^\+.*https?://' && echo "REVIEW: new external URL in diff — owner sign-off?"
@@ -288,20 +281,25 @@ from the repo root):
 
 - No live dead babel block (fixed 2026-07-21 — should only match comments
   referencing the historical incident): `grep -n 'type="text/babel"' index.html`
-- CDN/external lines still 8–10 (goes away when vendoring lands, still
-  unstarted — `sailaja-os-frontier-and-method` Item 2):
-  `grep -n "unpkg\|googleapis" index.html`
-- localStorage keys (now three, was two): `grep -n "localStorage" index.html`
-- Database + session functions: `grep -n "DB_KEY\|SESSIONS_KEY\|addNewStudent\|initDatabase\|renderStudents\|logSession\|deleteStudent\|saveStudentEdit" index.html`
+- Zero external network requests (Item 2 DONE 2026-07-21, not "unstarted" —
+  should return nothing):
+  `grep -n "unpkg\|googleapis\|https://\|http://" index.html | grep -v "svg%22"`
+- No React anywhere (Item 2): `grep -rn "React\.\|ReactDOM" index.html tweaks-panel.js`
+- No `.jsx` file in the repo: `ls tweaks-panel.jsx 2>&1` (expect "No such file")
+- localStorage keys (now six, was two): `grep -n "localStorage" index.html`
+- Database + session + content functions: `grep -n "DB_KEY\|SESSIONS_KEY\|LESSONS_KEY\|EXAMS_KEY\|QUIZ_KEY\|addNewStudent\|initDatabase\|renderStudents\|logSession\|deleteStudent\|saveStudentEdit\|addLesson\|addExam\|addQuizQuestion" index.html`
 - Escaped innerHTML + real band derivation (fixed 2026-07-21 — confirm the
   fix, don't assume it): `grep -n "function esc\|function deriveCurrBand" index.html`
-- tweaks-panel globals export: `grep -n "Object.assign(window" tweaks-panel.js`
+- Vanilla tweaks-panel API (no `Object.assign(window,...)` export block
+  anymore — plain function declarations are already globals):
+  `grep -n "^function createTweaksPanel\|^function tweakSlider" tweaks-panel.js`
 - Still no build system / lint / tests: `ls package.json 2>&1; ls *.test.* 2>/dev/null`
-- File inventory and line counts: `wc -l index.html sailaja_teaching_os_v2.html tweaks-panel.js tweaks-panel.jsx`
+- File inventory: `wc -l index.html sailaja_teaching_os_v2.html tweaks-panel.js` and `ls vendor/fonts/`
 - Whether `teach_os_students` holds Sailaja's real data yet (the store is
   now armed and writable — this checks whose data, not whether it's
   possible): check Sailaja's browser profile, not the repo —
   `localStorage.getItem('teach_os_students')` in her browser console.
 - Persistence layer alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs` (expect `25/25 PASS`).
+- Offline-completeness: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-offline.mjs` (expect `10/10 PASS`).
 - Cross-references assume the sibling skills named above exist:
   `ls .claude/skills/`

@@ -39,14 +39,15 @@ species of failure: intention committed as fact, never checked in a browser.
 ## Settled — nothing to reopen
 
 - **Vendoring `tweaks-panel.jsx` → `tweaks-panel.js`** (part of `9fef6e5`):
-  correct and verified working. The precompiled file exports its globals via
-  `Object.assign(window, {...})` at line 351, loads via a plain
-  `<script src="tweaks-panel.js">` (index.html:11), and
-  `typeof window.useTweaks === 'function'` is confirmed live in a real
-  browser (`sailaja-os-browser-verification` smoke.mjs, "negative control"
-  check). Do not re-add a Babel CDN to make this file's *source* (`.jsx`)
-  compile in-browser — the compiled pair discipline is correct; keep it
-  (`sailaja-os-change-control` non-negotiable #3).
+  was correct and verified working *at the time* — the precompiled file
+  exported its globals via `Object.assign(window, {...})`, loaded via a
+  plain `<script src>`, and `typeof window.useTweaks === 'function'` was
+  confirmed live. **Superseded 2026-07-21**: React was removed entirely
+  (`sailaja-os-frontier-and-method` Item 2) — `tweaks-panel.jsx` was
+  deleted, `tweaks-panel.js` is now hand-written vanilla JS with a
+  different API (`createTweaksPanel`/`tweakSlider`/etc., no `useTweaks`).
+  The compiled-pair discipline this bullet used to protect is retired, not
+  just satisfied — there is no pair anymore.
 - **GitHub Actions scaffolding** (`b9815ed`, `14f193a`, merged `1bdc49e`,
   2026-04-20): stock "Claude PR Assistant" / "Claude Code Review" workflow
   files, unmodified since. No incidents; not app code.

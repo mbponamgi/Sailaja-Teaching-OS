@@ -6,13 +6,16 @@ description: >
   or test a change; writing a verify script; seeding or reading
   `teach_os_students`/`sailaja-dark` in localStorage; testing the daily-use
   campaign's persistence work (students, sessions, lessons, exams, quiz
-  questions); or whenever "how do I test this" comes up. Encodes the house
+  questions); testing the tweaks panel (vanilla JS since 2026-07-21, no
+  React) or offline-completeness (zero external requests, also since
+  2026-07-21); or whenever "how do I test this" comes up. Encodes the house
   rule (non-negotiable #1 in sailaja-os-change-control): no change ships on
   "looks right" alone — serve the app locally, drive the real UI with
-  headless Playwright, and print PASS/FAIL evidence. Ships four working
+  headless Playwright, and print PASS/FAIL evidence. Ships six working
   scripts (smoke test, store dumper/seeder, student/session CRUD-and-reload
-  regression, lesson/exam/quiz CRUD-and-reload regression) plus the shared
-  plumbing they all use.
+  regression, lesson/exam/quiz CRUD-and-reload regression, tweaks-panel
+  control-interaction regression, offline-completeness regression) plus the
+  shared plumbing they all use.
 ---
 
 # Sailaja OS Browser Verification
@@ -58,11 +61,17 @@ node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs
 # 3. After any change touching lessons/exams/quiz questions:
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-content-crud.mjs
 
-# 4. Inspect or seed the persistent test-profile store (no app JS runs):
+# 4. After any change to tweaks-panel.js or mountTweaks():
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-tweaks-panel.mjs
+
+# 5. After any change to vendored assets or anything network-adjacent:
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-offline.mjs
+
+# 6. Inspect or seed the persistent test-profile store (no app JS runs):
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs /path/to/seed.json
 
-# 5. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
+# 7. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
 #    structure into a throwaway verify-<change>.mjs (scratch dir, never
 #    committed) and adapt the DRIVE/ASSERT section — see "Writing a new
 #    verify script" below.
@@ -107,6 +116,8 @@ Same standard as the sibling FFOS repo (`ffos-browser-verification`), adapted:
 | `smoke.mjs` | Boots the app in a **throwaway** context, asserts sidebar renders, dashboard is the default active page, `initDatabase()` scrapes exactly 15 students, `addNewStudent` is a real function, `teach_os_students` is written, the tweaks panel renders once activated via `postMessage`, `toggleDark()` flips `sailaja-dark`, zero console/page errors/failed requests | After every change; the minimum bar |
 | `verify-crud.mjs` | The daily-use-campaign's stated success metric, executable: add a student via the real form → log a session for them via the row's "Log" button → edit their name via the profile modal → **reload the page** → delete them (cascade-removes their session). Asserts exact counts and field values at every step, including post-reload. Negative controls: dark mode, `filterStudents`, zero console/page errors throughout | After any change touching students, sessions, or the view-student/add-session modals — this is the one that actually proves persistence, not just that a function exists |
 | `verify-content-crud.mjs` | Phase 3(d)'s regression: add a lesson, an exam (linked to a real student), and a quiz question via their real forms, asserts each new store (`teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`) went 0→1 with correct derived fields, the "hidden until non-empty" cards become visible, the dynamic quiz card's `answerQuiz()` click reports correctly, **reloads**, and re-asserts all three. Negative controls: the 4 static quiz cards stay exactly 4, `addNewStudent`/`logSession` unaffected | After any change touching lessons, exams, or quiz questions |
+| `verify-tweaks-panel.mjs` | Interaction regression for the vanilla (no React) tweaks panel rewrite (2026-07-21): activates the panel, drives every control type — toggle, slider, color, text, radio — and asserts each one's real side effect (CSS var change, `.sidebar` width, `.student-parent` visibility, dashboard greeting text), then closes it and asserts DOM cleanup + the `__edit_mode_dismissed` postMessage | After any change to `tweaks-panel.js` or to `mountTweaks()`'s composition in `index.html` |
+| `verify-offline.mjs` | Offline-completeness — the exact success metric `sailaja-os-frontier-and-method` Item 2 states: every non-localhost network route aborted, asserts 0 requests attempted, app still fully functional (students scraped, `addNewStudent` callable, tweaks panel mounts), fonts confirmed loaded via `document.fonts` | After any change to vendored assets (`vendor/fonts/`), `<head>` deps, or anything that could reintroduce an external request |
 | `dump-store.mjs` | Uses a **persistent** test-profile context (survives across separate runs) to read, and optionally seed, `teach_os_students` — navigates to a same-origin 404 page (`NO_APP_URL`) so **zero app script runs**, meaning it never triggers `initDatabase()`'s one-shot first-run scrape | Inspecting the store shape; seeding old- or new-shape data for a migration test; preparing fixture state before a behavior-change verify script drives the real UI |
 
 All three were run for real (`smoke.mjs`/`dump-store.mjs` authored
@@ -311,6 +322,50 @@ PASS  no uncaught page errors across the whole run  (actual: [])
 PASS: 26/26 checks passed (http://localhost:8931/index.html)
 ```
 
+**`verify-tweaks-panel.mjs`** (real run, 2026-07-21, immediately after the
+React-removal rewrite):
+
+```
+PASS  4 tweak sections rendered  (actual: 4)
+PASS  panel header present (draggable handle)  (actual: 1)
+PASS  parent contact visible before toggle  (actual: true)
+PASS  parent contact hidden after toggling off  (actual: false)
+PASS  parent contact visible again after toggling back on  (actual: true)
+PASS  slider updates --sidebar-w CSS var live  (actual: "280px")
+PASS  slider updates the real .sidebar element width live  (actual: "280px")
+PASS  color picker updates --french-blue CSS var live  (actual: "#ff0000")
+PASS  teacher name input updates the dashboard greeting live  (actual: "Bon après-midi, Test Teacher")
+PASS  clicking "Cool" updates --bg to the cool palette  (actual: "#f0f2f5")
+PASS  clicking "Cool" flips its own aria-checked to true  (actual: "true")
+PASS  the previously-selected "Warm" option is no longer checked  (actual: "false")
+PASS  panel removed from DOM after closing  (actual: 0)
+PASS  __edit_mode_dismissed posted to parent  (actual: true)
+PASS  addNewStudent still a function after all tweaks interaction  (actual: "function")
+PASS  no console errors across the whole run  (actual: [])
+PASS  no uncaught page errors across the whole run  (actual: [])
+
+PASS: 17/17 checks passed (http://localhost:8931/index.html)
+```
+
+**`verify-offline.mjs`** (real run, 2026-07-21, after fonts were vendored —
+`sailaja-os-frontier-and-method` Item 2's exact stated success metric,
+achieved):
+
+```
+PASS  zero external requests attempted while offline  (actual: [])
+PASS  sidebar renders offline  (actual: true)
+PASS  dashboard is the active page offline  (actual: true)
+PASS  initDatabase scraped 15 students offline  (actual: 15)
+PASS  addNewStudent is a function offline  (actual: "function")
+PASS  Figtree loaded from local file  (actual: ["Figtree","Instrument Serif","Instrument Serif"])
+PASS  Instrument Serif loaded from local file  (actual: ["Figtree","Instrument Serif","Instrument Serif"])
+PASS  tweaks panel mounts offline  (actual: 1)
+PASS  no console errors while offline  (actual: [])
+PASS  no uncaught page errors while offline  (actual: [])
+
+PASS: 10/10 checks passed (http://localhost:8931/index.html)
+```
+
 `dump-store.mjs` (fresh test profile, then seeded with the §6 fixture from
 `sailaja-os-data-model-and-migrations`, then re-run unseeded to confirm
 persistence — run pre-fix; the same-origin `NO_APP_URL` mechanism this
@@ -357,23 +412,29 @@ float equality on seeded ids.
 Authored 2026-07-21 against HEAD `9fef6e5` (`index.html`, then 1987 lines).
 `lib.mjs` was authored 2026-07-20 (per its header comment) but had never been
 run until this skill's scripts were written and executed against it the same
-day. The daily-use-campaign Phase 1-3 fix landed later the same day as a
-working-tree change (not yet committed at time of writing) — `smoke.mjs` and
-this file were updated in step, and `verify-crud.mjs` was added. Re-verify
-with one command:
+day. The same day, in sequence: the daily-use-campaign Phase 1-3(d) fix
+landed (`smoke.mjs` updated, `verify-crud.mjs`/`verify-content-crud.mjs`
+added), then Item 2 (React removal + font vendoring) landed on top
+(`smoke.mjs` updated again, `verify-tweaks-panel.mjs`/`verify-offline.mjs`
+added) — all as working-tree changes at time of writing; confirm each has
+been committed before trusting its claims blindly. Re-verify the whole
+suite with:
 
 ```bash
 export PW_PATH=/Users/mponamgi/Documents/Personal-finance-tracker/node_modules
+node .claude/skills/sailaja-os-browser-verification/scripts/smoke.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-content-crud.mjs
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-tweaks-panel.mjs
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-offline.mjs
 ```
 
-If both print `25/25 PASS` and `26/26 PASS`, the whole persistence layer
-(students, sessions, edit/delete, reload-survival, plus lessons/exams/quiz)
-is intact. Run `smoke.mjs` first for a faster minimum-bar check
-(`11/11 PASS`). If any regress, re-read `sailaja-os-failure-archaeology`
-Incidents 1 and 2 before assuming you know the cause — both were
-counter-intuitive on first read.
+Expect `11/11`, `25/25`, `26/26`, `17/17`, `10/10` — everything green means
+persistence (students/sessions/edit-delete/reload-survival), Phase 3(d)
+content, the vanilla tweaks panel, and offline-completeness are all intact.
+If any regress, re-read `sailaja-os-failure-archaeology` Incidents 1 and 2
+before assuming you know the cause — both were counter-intuitive on first
+read.
 
 - `PW_PATH` points at a sibling repo by absolute path — if
   `Personal-finance-tracker` moves or its `node_modules` is pruned, either
