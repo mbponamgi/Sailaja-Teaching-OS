@@ -10,17 +10,20 @@ description: >
   React), offline-completeness (zero external requests, also since
   2026-07-21), the Backup & Restore export/import feature (also since
   2026-07-21), live nav-badge/subtitle/stat-card counts and the CBSE Recent
-  Sessions cards (also since 2026-07-21), or the fees & payments ledger
-  (also since 2026-07-21); or whenever "how do I test this" comes up.
-  Encodes the house rule (non-negotiable #1 in sailaja-os-change-control):
+  Sessions cards (also since 2026-07-21), the fees & payments ledger (also
+  since 2026-07-21), or the schedule-aware dashboard (also since
+  2026-07-21 — the "This Week" stat, the subgreeting's class/exam counts,
+  and the "Upcoming Sessions" card); or whenever "how do I test this" comes
+  up. Encodes the house rule (non-negotiable #1 in sailaja-os-change-control):
   no change ships on "looks right" alone — serve the app locally, drive the
-  real UI with headless Playwright, and print PASS/FAIL evidence. Ships
-  nine working scripts (smoke test, store dumper/seeder, student/session
+  real UI with headless Playwright, and print PASS/FAIL evidence. Ships ten
+  working scripts (smoke test, store dumper/seeder, student/session
   CRUD-and-reload regression, lesson/exam/quiz CRUD-and-reload regression,
   tweaks-panel control-interaction regression, offline-completeness
   regression, backup-export-restore round-trip regression,
-  live-counts-and-recent-sessions regression, fees-ledger regression) plus
-  the shared plumbing they all use.
+  live-counts-and-recent-sessions regression, fees-ledger regression,
+  schedule-aware-dashboard regression) plus the shared plumbing they all
+  use.
 ---
 
 # Sailaja OS Browser Verification
@@ -85,11 +88,16 @@ node .claude/skills/sailaja-os-browser-verification/scripts/verify-live-counts.m
 #    profile:
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-fees.mjs
 
-# 9. Inspect or seed the persistent test-profile store (no app JS runs):
+# 9. After any change to renderScheduleAwareDashboard(), scheduleDayNum(),
+#    computeWeekClassCount(), computeUpcomingExamsCount(), or the
+#    dashboard's This Week/subgreeting/Upcoming Sessions elements:
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-schedule.mjs
+
+# 10. Inspect or seed the persistent test-profile store (no app JS runs):
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs /path/to/seed.json
 
-# 10. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
+# 11. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
 #    structure into a throwaway verify-<change>.mjs (scratch dir, never
 #    committed) and adapt the DRIVE/ASSERT section — see "Writing a new
 #    verify script" below.
@@ -139,6 +147,7 @@ Same standard as the sibling FFOS repo (`ffos-browser-verification`), adapted:
 | `verify-backup.mjs` | Item 4's stated success metric: export the seeded store, capture the real downloaded file, mutate the store (add a 16th student) AFTER the export, then restore from the file and assert the store snapshots back to exactly the pre-mutation state. Negative controls: a non-JSON file, a valid-JSON-wrong-shape file, and a dismissed confirm dialog each leave the store completely untouched; also asserts the on-load backup-staleness nudge toast fires when no export has ever happened | After any change to `exportData()`, `handleRestoreFile()`, `renderBackupStatus()`, `checkBackupNudge()`, or the Backup & Restore page |
 | `verify-live-counts.mjs` | Item 5's "Live counts" + "Real Recent Sessions" nice-to-haves: asserts nav badges/dashboard stat cards/page-subtitle counts/Students-page filter-bar counts (`sailaja-os-architecture-contract` W7) all read the real 15-student seed (catching that the old hardcoded "14" was already wrong); asserts the 3 CBSE "Recent Sessions" cards start honestly empty, then render a real logged session for their tracked student (`Aarav T.`) while the other two tracked cards and a session for an UNtracked student (`Rohan K.`) leave them unaffected (negative controls); drives add/edit-curriculum/delete through the real UI and asserts every wired count shifts correctly; **reloads** and re-asserts everything | After any change to `renderLiveCounts()`, `renderCBSERecentSessions()`, or any element they write to |
 | `verify-fees.mjs` | Item 3's fees & payments ledger: adds a student with a real `monthlyFee`, asserts "Due" status and an empty payment list before any payment, records a payment via the real UI, asserts the status flips to "Paid" and **survives a reload**; negative controls — a student with no `monthlyFee` reads "No fee set" (never a fabricated "Due" or invented amount); the Fee Reminder Copy button with no student selected leaves the clipboard untouched (checked against a pre-seeded marker string) and alerts instead; Copy for a fee-configured student fills in real parent name/month/amount with zero literal placeholders left; Copy for a no-fee student still fills real name/month but leaves `[Amount]` literal; deleting a student cascades their payment records and drops them from both student-select dropdowns; asserts the Backup & Restore export includes `teach_os_payments` (the cross-feature `BACKUP_KEYS` fix) | After any change to `logPayment()`, `renderViewStudentPayments()`, `copyFeeReminder()`, `monthlyFee`, or the Fees section of the student profile |
+| `verify-schedule.mjs` | Item 5's last sub-item, the schedule-aware dashboard — its stated milestone verbatim ("dashboard counts computed from stored schedules match a hand-counted seed"): hand-counts the 15 seeded students' known weekly day independently of the app's own parsing code and asserts `#stat-thisweek`/the subgreeting/the Upcoming Sessions top-5 order all agree; negative controls — a past-dated exam does NOT increment "exams coming up" (a future-dated one does); a new student scheduled on an already-passed day this week does NOT change the week-class count (one scheduled inside the remaining window does); editing a student's schedule out of the window decrements the count; **reloads** and re-asserts everything | After any change to `renderScheduleAwareDashboard()`, `scheduleDayNum()`, `computeWeekClassCount()`, `computeUpcomingExamsCount()`, or the dashboard's This-Week/subgreeting/Upcoming-Sessions elements |
 | `dump-store.mjs` | Uses a **persistent** test-profile context (survives across separate runs) to read, and optionally seed, `teach_os_students` — navigates to a same-origin 404 page (`NO_APP_URL`) so **zero app script runs**, meaning it never triggers `initDatabase()`'s one-shot first-run scrape | Inspecting the store shape; seeding old- or new-shape data for a migration test; preparing fixture state before a behavior-change verify script drives the real UI |
 
 All three were run for real (`smoke.mjs`/`dump-store.mjs` authored
@@ -537,6 +546,50 @@ the `open` class is not a state the CSS/click-handling was ever designed
 to support: worth remembering for any future "open modal B from inside
 modal A" button.
 
+**`verify-schedule.mjs`** (real run, 2026-07-21, `sailaja-os-frontier-and-method`
+Item 5's exact "you have a result when..." metric, achieved — "today" was a
+Tuesday when this ran, so both the inside- and outside-window branches
+exercised; totals will differ on a re-run against a different weekday, by
+design):
+
+```
+PASS  stat-thisweek matches the hand-counted seed  (actual: "13")
+PASS  subgreeting class count matches the hand-counted seed  (actual: "13 classes this week · 0 exams coming up")
+PASS  subgreeting exam count starts at 0 (no exams seeded)  (actual: "13 classes this week · 0 exams coming up")
+PASS  Upcoming Sessions shows exactly 5 items  (actual: 5)
+PASS  Upcoming Sessions order matches the hand-computed top 5  (actual: ["Aarav T.","Ananya S.","Ishaan M.","Kiran P.","Sara M."])
+PASS  past-dated exam does NOT count as "coming up"  (actual: "13 classes this week · 0 exams coming up")
+PASS  future-dated exam counts as "coming up" (0 -> 1)  (actual: "13 classes this week · 1 exams coming up")
+PASS  week-class count unaffected by a student scheduled outside the remaining window  (actual: "13")
+PASS  week-class count increments for a student scheduled inside the remaining window  (actual: "14")
+PASS  editing a student's schedule out of the window decrements the count  (actual: "13")
+PASS  week-class count back to the original hand-count after cleanup  (actual: "13")
+PASS  after reload: stat-thisweek still matches the hand-count  (actual: "13")
+PASS  after reload: Upcoming Sessions order unchanged  (actual: ["Aarav T.","Ananya S.","Ishaan M.","Kiran P.","Sara M."])
+PASS  after reload: exam count still 1  (actual: "13 classes this week · 1 exams coming up")
+PASS  no console errors across the whole run  (actual: [])
+PASS  no uncaught page errors across the whole run  (actual: [])
+
+PASS: 16/16 checks passed (http://localhost:8931/index.html)
+```
+
+**No new data model needed — a real finding, not an assumption confirmed**:
+the item's own roadmap entry predicted this would need "a structured,
+queryable schedule data model." It didn't. `initDatabase()`'s seed rows and
+`addNewStudent()` have both written `schedule` as `"Ddd · <time>"` since
+before this repo's persistence layer even worked — the day-of-week was
+always there, just never parsed back out. `scheduleDayNum()` does that with
+a 7-entry lookup table and zero storage changes.
+
+**Array-comparison bug caught while writing this script (not shipped)**:
+`makeChecker()`'s `check()` uses `Object.is()` for non-predicate expected
+values, which is never true for two different array objects even with
+identical contents — `check('...', arrA, arrB)` silently fails even when
+`arrA` and `arrB` print identically. Fixed in the script itself with an
+`equalsArray()` helper that wraps the comparison in a predicate
+(JSON-stringify equality). Worth remembering for any future verify script
+asserting an ordered list.
+
 `dump-store.mjs` (fresh test profile, then seeded with the §6 fixture from
 `sailaja-os-data-model-and-migrations`, then re-run unseeded to confirm
 persistence — run pre-fix; the same-origin `NO_APP_URL` mechanism this
@@ -595,9 +648,11 @@ scripts), then Item 3 (fees & payments ledger, built on explicit owner
 sign-off) landed on top of that (`verify-fees.mjs` added; `BACKUP_KEYS`
 updated to include the new `teach_os_payments` key, so `verify-backup.mjs`'s
 claims about "the full store" now implicitly cover fees too even though its
-own assertions weren't rewritten) — all as working-tree changes at time of
-writing; confirm each has been committed before trusting its claims
-blindly. Re-verify the whole suite with:
+own assertions weren't rewritten), then Item 5's schedule-aware-dashboard
+sub-item (its last piece) landed on top of that (`verify-schedule.mjs`
+added, no changes needed to the other nine scripts) — all as working-tree
+changes at time of writing; confirm each has been committed before
+trusting its claims blindly. Re-verify the whole suite with:
 
 ```bash
 export PW_PATH=/Users/mponamgi/Documents/Personal-finance-tracker/node_modules
@@ -609,15 +664,19 @@ node .claude/skills/sailaja-os-browser-verification/scripts/verify-offline.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-backup.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-live-counts.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-fees.mjs
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-schedule.mjs
 ```
 
 Expect `11/11`, `25/25`, `26/26`, `17/17`, `10/10`, `19/19`, `50/50`,
-`32/32` — everything green means persistence (students/sessions/
+`32/32`, `16/16` — everything green means persistence (students/sessions/
 edit-delete/reload-survival), Phase 3(d) content, the vanilla tweaks panel,
 offline-completeness, the backup/restore round-trip, live counts + CBSE
-Recent Sessions, and the fees ledger are all intact. If any regress,
-re-read `sailaja-os-failure-archaeology` Incidents 1 and 2 before assuming
-you know the cause — both were counter-intuitive on first read.
+Recent Sessions, the fees ledger, and the schedule-aware dashboard are all
+intact. (`verify-schedule.mjs`'s exact expected numbers depend on the real
+weekday it's run on — see its own PREDICTIONS comment — but `16/16 PASS`
+should hold regardless of day.) If any regress, re-read
+`sailaja-os-failure-archaeology` Incidents 1 and 2 before assuming you know
+the cause — both were counter-intuitive on first read.
 
 - `PW_PATH` points at a sibling repo by absolute path — if
   `Personal-finance-tracker` moves or its `node_modules` is pruned, either

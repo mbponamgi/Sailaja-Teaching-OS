@@ -608,8 +608,8 @@ textarea.form-control { resize: vertical; min-height: 70px; }
     <div class="stat-card">
       <div class="stat-accent" style="background:var(--sage)"></div>
       <div class="stat-label">This Week</div>
-      <div class="stat-value">9</div>
-      <div class="stat-sub">Classes scheduled</div>
+      <div class="stat-value" id="stat-thisweek">9</div>
+      <div class="stat-sub">Classes remaining</div>
     </div>
   </div>
 
@@ -623,33 +623,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
           <span class="card-title">Upcoming Sessions</span>
           <button class="btn btn-ghost btn-sm" onclick="showPage('schedule')">Full schedule →</button>
         </div>
-        <div class="session-list">
-          <div class="session-item">
-            <div class="session-when"><div class="session-day">Mon 5 May</div><div class="session-time">3:30 PM · 60 min</div></div>
-            <div><div class="session-title">Rohan K. — Board exam révision</div><div class="session-note">CBSE Gr 10 · Tenses + reading comprehension</div></div>
-            <span class="badge badge-cbse">CBSE</span>
-          </div>
-          <div class="session-item">
-            <div class="session-when"><div class="session-day">Mon 5 May</div><div class="session-time">5:00 PM · 60 min</div></div>
-            <div><div class="session-title">Priya R. — Leçon 7: Les couleurs</div><div class="session-note">A1 · Vocabulary + adjective agreement</div></div>
-            <span class="badge badge-a1">A1</span>
-          </div>
-          <div class="session-item">
-            <div class="session-when"><div class="session-day">Tue 6 May</div><div class="session-time">4:00 PM · 60 min</div></div>
-            <div><div class="session-title">Ananya S. — Formal letter writing</div><div class="session-note">Cambridge Gr 8 · IGCSE writing skills</div></div>
-            <span class="badge badge-cam">Cambridge</span>
-          </div>
-          <div class="session-item">
-            <div class="session-when"><div class="session-day">Wed 7 May</div><div class="session-time">6:00 PM · 75 min</div></div>
-            <div><div class="session-title">Ishaan M. — Paper 1 practice</div><div class="session-note">IBDP SL · Unseen text analysis</div></div>
-            <span class="badge badge-ibdp">IBDP</span>
-          </div>
-          <div class="session-item">
-            <div class="session-when"><div class="session-day">Thu 8 May</div><div class="session-time">4:30 PM · 60 min</div></div>
-            <div><div class="session-title">Diya R. — Negation + questions</div><div class="session-note">CBSE Gr 7 · ne...pas, ne...jamais</div></div>
-            <span class="badge badge-cbse">CBSE</span>
-          </div>
-        </div>
+        <div class="session-list" id="dashboard-upcoming-sessions"></div>
       </div>
 
       <!-- Progress by Curriculum -->
@@ -2155,10 +2129,8 @@ function renderStudents() {
 // numeric badges/values are wired up, not the descriptive sub-text (e.g. the
 // dashboard stat cards' "Gr 4 · 7 · 9 · 10 · 12" line) -- that text isn't
 // reliably derivable from the free-text levelBadge field and is out of this
-// item's scope. The dashboard's "This Week" stat and "9 classes this week..."
-// subtitle stay static too -- that's schedule-aware dashboard work, not
-// started (see the skill for why: no structured, queryable schedule data
-// model exists yet).
+// item's scope. The "This Week"/"9 classes this week..." schedule numbers
+// are handled separately by renderScheduleAwareDashboard() below.
 function setTextIfPresent(id, value) {
   const el = document.getElementById(id);
   if (el) el.textContent = value;
@@ -2196,16 +2168,108 @@ function renderLiveCounts() {
   setTextIfPresent('filter-count-a1a2', counts.a1);
 }
 
+// Schedule-aware dashboard — sailaja-os-frontier-and-method Item 5's last
+// sub-item. No structured schedule field was ever added to the student
+// record (no migration, no new localStorage key): a student's `schedule`
+// string has followed one fixed shape since initDatabase() first existed --
+// `"Ddd · <time text>"` (`day.substring(0,3) + ' · ' + time`, written by
+// both the static seed rows and addNewStudent()) -- so the day-of-week is
+// derived by parsing that existing field, not by storing a new one.
+const DAY_ABBR_TO_NUM = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function scheduleDayNum(schedule) {
+  const abbr = (schedule || '').slice(0, 3);
+  return Object.prototype.hasOwnProperty.call(DAY_ABBR_TO_NUM, abbr) ? DAY_ABBR_TO_NUM[abbr] : null;
+}
+
+function scheduleTimeText(schedule) {
+  const idx = (schedule || '').indexOf('·');
+  return idx === -1 ? '' : schedule.slice(idx + 1).trim();
+}
+
+// Days from `fromDow` to the next occurrence of `targetDow`, 0-6 -- 0 means
+// "today". No student can be scheduled on Sunday (the day <select> only
+// offers Monday-Saturday), but this stays generic rather than special-casing
+// that, so an unexpected value degrades gracefully instead of throwing.
+function daysUntilWeekday(targetDow, fromDow) {
+  return (targetDow - fromDow + 7) % 7;
+}
+
+function todayISODate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatSessionCardDate(d) {
+  return `${WEEKDAY_SHORT[d.getDay()]} ${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`;
+}
+
+// "This week" = today through this Saturday (the class week the day
+// <select> models, Monday-Saturday) -- a class already held earlier this
+// week doesn't count as "remaining", matching the stat card's "Classes
+// remaining" label.
+function computeWeekClassCount(students, today) {
+  const todayDow = today.getDay();
+  const maxOffset = todayDow === 0 ? 6 : 6 - todayDow;
+  return students.filter(s => {
+    const dow = scheduleDayNum(s.schedule);
+    return dow !== null && daysUntilWeekday(dow, todayDow) <= maxOffset;
+  }).length;
+}
+
+// Unbounded ("coming up", not "this week") -- exams already carry a real
+// date (`exam-date`, ISO `YYYY-MM-DD`), so this needed no new field either.
+function computeUpcomingExamsCount(today) {
+  const exams = JSON.parse(localStorage.getItem(EXAMS_KEY)) || [];
+  const todayStr = todayISODate(today);
+  return exams.filter(e => e.examDate && e.examDate >= todayStr).length;
+}
+
+function renderScheduleAwareDashboard() {
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  const today = new Date();
+
+  setTextIfPresent('stat-thisweek', computeWeekClassCount(students, today));
+  const subgreeting = document.getElementById('dashboard-subgreeting');
+  if (subgreeting) {
+    subgreeting.textContent =
+      `${computeWeekClassCount(students, today)} classes this week · ${computeUpcomingExamsCount(today)} exams coming up`;
+  }
+
+  const container = document.getElementById('dashboard-upcoming-sessions');
+  if (!container) return;
+  const upcoming = students
+    .map(s => {
+      const dow = scheduleDayNum(s.schedule);
+      if (dow === null) return null;
+      const offset = daysUntilWeekday(dow, today.getDay());
+      const date = new Date(today);
+      date.setDate(date.getDate() + offset);
+      return { student: s, date, offset };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.offset - b.offset || a.student.name.localeCompare(b.student.name))
+    .slice(0, 5);
+
+  container.innerHTML = upcoming.length
+    ? upcoming.map(({ student: s, date }) => `
+      <div class="session-item">
+        <div class="session-when"><div class="session-day">${esc(formatSessionCardDate(date))}</div><div class="session-time">${esc(scheduleTimeText(s.schedule))}</div></div>
+        <div><div class="session-title">${esc(s.name)}</div><div class="session-note">${esc(s.currBadge)} ${esc(s.levelBadge)} · ${esc(s.focus)}</div></div>
+        <span class="badge ${badgeClassForCurr(s.curr)}">${esc(s.currBadge)}</span>
+      </div>`).join('')
+    : '<div class="session-item"><div style="color:var(--ink3);font-size:0.78rem;">No upcoming classes scheduled.</div></div>';
+}
+
 // Real "Recent Sessions" -- sailaja-os-frontier-and-method Item 5. Only the
 // CBSE page's 3 tab cards (primary/middle/senior) show a "Recent Sessions"
-// card at all; Cambridge and IBDP have no equivalent, and the dashboard's
-// "Upcoming Sessions" card is forward-looking schedule content, deliberately
-// out of scope (see renderLiveCounts' comment). Each card is still tied to
-// one specific fictional-demo student BY NAME (there's no other link in the
-// static markup) -- the same 15 names are the initDatabase() seed, so the
-// lookup resolves to a real id on first load. If Sailaja renames one of
-// these particular students, its card falls back to "No sessions logged
-// yet" rather than silently showing someone else's data.
+// card at all; Cambridge and IBDP have no equivalent. Each card is still
+// tied to one specific fictional-demo student BY NAME (there's no other
+// link in the static markup) -- the same 15 names are the initDatabase()
+// seed, so the lookup resolves to a real id on first load. If Sailaja
+// renames one of these particular students, its card falls back to "No
+// sessions logged yet" rather than silently showing someone else's data.
 const CBSE_RECENT_SESSIONS_CARDS = [
   { studentName: 'Aarav T.', containerId: 'cbse-primary-sessions' },
   { studentName: 'Diya R.', containerId: 'cbse-middle-sessions' },
@@ -2263,6 +2327,7 @@ function addNewStudent() {
   populatePaymentStudentSelect();
   populateFeeReminderStudentSelect();
   renderLiveCounts();
+  renderScheduleAwareDashboard();
 
   document.getElementById('new-student-name').value = '';
   document.getElementById('new-student-level').value = '';
@@ -2321,6 +2386,7 @@ function saveStudentEdit() {
   populateFeeReminderStudentSelect();
   renderLiveCounts();
   renderCBSERecentSessions();
+  renderScheduleAwareDashboard();
   renderViewStudentPayments(currentViewStudentId);
   closeModal('view-student');
   showToast('✓ Student updated!');
@@ -2350,6 +2416,7 @@ function deleteStudent() {
   populateFeeReminderStudentSelect();
   renderLiveCounts();
   renderCBSERecentSessions();
+  renderScheduleAwareDashboard();
   closeModal('view-student');
   showToast('✓ Student deleted.');
 }
@@ -2651,6 +2718,7 @@ function addExam() {
   });
   localStorage.setItem(EXAMS_KEY, JSON.stringify(exams));
   renderExams();
+  renderScheduleAwareDashboard();
 
   document.getElementById('exam-name').value = '';
   document.getElementById('exam-date').value = '';
@@ -2841,6 +2909,7 @@ document.addEventListener('DOMContentLoaded', () => {
   checkBackupNudge();
   renderLiveCounts();
   renderCBSERecentSessions();
+  renderScheduleAwareDashboard();
 });
 </script>
 </body>
