@@ -34,18 +34,19 @@ before relying on them.
    have. Schema changes ship migrations.
 2. **VERIFY IN A REAL BROWSER.** No behavior change ships without headless
    Playwright evidence with printed PASS/FAIL. This repo's own HEAD commit
-   shipped a flagship feature that has never executed once (see weak point
-   W1) — the entire case for this rule, in one commit.
+   shipped a flagship feature that went unexecuted for over two months (W1,
+   below — fixed 2026-07-21, but the case for the rule stands regardless of
+   current status) — the entire case for this rule, in one commit.
 
 ## 1. Load-bearing decisions — what, why, and what each forbids
 
 | # | Decision | Why | What it forbids |
 |---|----------|-----|-----------------|
 | a | **Single-file, zero-build SPA.** All markup, CSS, and app logic live in `index.html`. The browser executes exactly what is committed — there is no compile step to transform anything. | One file to read, one file to serve; any static host works; no toolchain to rot; the owner (and a zero-context model) can audit the whole app top to bottom. The stated frontier is deliberately modest: a reliable local-first teaching OS, no AI-native features (owner, 2026-07-20). | Frameworks, bundlers, TypeScript, npm runtime deps, a build step of any kind — owner sign-off required to change this. |
-| b | **Raw JSX must never ship to the browser.** JSX is React's HTML-in-JS syntax; browsers cannot execute it — it requires compilation. `type="text/babel"` marks a script for the Babel compiler; **without Babel loaded, browsers silently skip the whole block**. The ONE place decision (a) was bent — the inline `text/babel` block at `index.html:1789` — is the repo's one dead feature (W1). | The tension is inherent: zero-build + JSX don't mix. The repo already paid for bending it: two months of a "shipped" feature that never ran. | Any new `<script type="text/babel">` block; adding a runtime Babel CDN to "fix" one; committing `.jsx` edits without the recompiled `.js` sibling. |
+| b | **Raw JSX must never ship to the browser.** JSX is React's HTML-in-JS syntax; browsers cannot execute it — it requires compilation. `type="text/babel"` marks a script for the Babel compiler; **without Babel loaded, browsers silently skip the whole block**. Decision (a) was bent once — an inline `text/babel` block that shipped the whole database dead for two months (W1, SETTLED 2026-07-21 by rewriting the same component as plain `React.createElement` calls, no Babel needed). | The tension is inherent: zero-build + JSX don't mix. The repo already paid for bending it once; the fix proves the bend was never necessary — the component didn't need JSX syntax, just React's API, which plain JS can call directly. | Any new `<script type="text/babel">` block; adding a runtime Babel CDN to "fix" one; committing `.jsx` edits without the recompiled `.js` sibling. |
 | c | **The pre-compiled pair `tweaks-panel.jsx` → `tweaks-panel.js` is the only sanctioned JSX path.** The `.jsx` (425 lines) is source; the committed `.js` (364 lines) is its plain-JS compile output, loaded by `index.html:11`, exposing 12 components as window globals via `Object.assign(window, {...})` at its line 351. Recompile command → sailaja-os-change-control non-negotiable #3. | Keeps React ergonomics for the tweaks panel without a build step in the serving path: compilation happens at authoring time, the browser only ever sees plain JS. | Editing `tweaks-panel.js` by hand (it is generated output); shipping one half of the pair. |
 | d | **`index.html` is THE app; `sailaja_teaching_os_v2.html` is frozen history.** v2 (1361 lines) is an older, purely static prototype — no React, no localStorage database. Verified 2026-07-20: `grep -c "React\|localStorage\|text/babel" sailaja_teaching_os_v2.html` returns 0. | v2 is historical evidence (→ sailaja-os-failure-archaeology). Serving it to Sailaja would hand her a dead-end app with no persistence path. | Editing v2, "fixing" v2, serving v2 to Sailaja. Deleting it needs owner sign-off. |
-| e | **localStorage-only persistence; no backend, ever.** Live key today: `'sailaja-dark'` (dark-mode flag, written at `index.html:1682`, restored at `:1686`). Designed key: `'teach_os_students'` (`DB_KEY`, `index.html:1882`) — load-bearing the moment the W1 fix ships. | Privacy: student names and parents' contact details are personal data about children. No server to breach, no account to phish, nothing leaves the device. | Any backend, cloud sync, analytics, telemetry, or fetch to any host. Sailaja's data never leaves the device — hard line, owner sign-off cannot be assumed. |
+| e | **localStorage-only persistence; no backend, ever.** Three live keys as of 2026-07-21: `'sailaja-dark'` (dark-mode flag), `'teach_os_students'` (`DB_KEY`, student roster — now load-bearing, W1 fixed), `'teach_os_sessions'` (`SESSIONS_KEY`, session log, new). | Privacy: student names and parents' contact details are personal data about children. No server to breach, no account to phish, nothing leaves the device. | Any backend, cloud sync, analytics, telemetry, or fetch to any host. Sailaja's data never leaves the device — hard line, owner sign-off cannot be assumed. |
 | f | **Direction of travel: vendor all deps locally, eliminate external network** (owner, 2026-07-20). Current known deviation: `index.html:8–10` — Google Fonts (Instrument Serif, Figtree) and unpkg CDN React 18.3.1 + ReactDOM 18.3.1 **development** UMD builds (UMD = a plain-`<script>` bundle that attaches globals like `window.React`, as opposed to a module) with SRI hashes (SRI = Subresource Integrity, an `integrity="sha384-..."` attribute making the browser refuse a tampered file). | Same privacy/reliability logic as (e): a CDN outage or a coffee-shop captive portal must not kill Sailaja's working day. The 3 CDN lines are tolerated as-is until vendoring lands, not blessed. | ADDING any external `<script>`, `<link>`, font host, or request (owner sign-off). Growing lines 8–10 in any way. |
 
 ## 2. Section map — `index.html` (1987 lines)
@@ -57,11 +58,11 @@ before relying on them.
 | 435–480 | Sidebar | nav buttons `onclick="showPage('<id>')"` (456–475), dark toggle in footer |
 | 483–1444 | `<main>` — the 12 pages | breadcrumb target `id="breadcrumb-current"` (491). One `<div class="page" id="page-<id>">` each: dashboard 508, students 700, a1a2 881, cbse 912, cambridge 991, ibdp 1026, lessons 1077, schedule 1125, exams 1198, quizzes 1245, comms 1306, resources 1400 |
 | 724–871 | Students table (inside page-students) | `id="students-table"` (724); **15 static seeded rows** (`<tr data-curr="..." data-band="...">`, first at 737) with masked parent phones (`98765XXXXX` style, e.g. 738). Note: the nav badge (457) and "All" filter button (711) both say 14 — static-content drift, see W7 |
-| 1452–1589 | The 6 modals | `<div class="modal-bg" id="modal-<id>">`: add-student 1452 (its "Add Student" button at 1477 → `addNewStudent()` — currently a ReferenceError, W1), add-session 1483, add-lesson 1513, add-exam 1536, add-quiz 1558, view-student 1578 |
-| 1591 | Toast | `<div class="toast" id="toast">` |
-| 1593–1786 | **Plain `<script>` — everything that actually runs** | `breadcrumbLabels` (1595, 12 keys), `showPage` (1602), `openModal`/`closeModal` (1614–1615), backdrop-click close binding (1616–1618), Escape handler (1619), `showToast` (1624), `saveAndClose` (1631), `answerQuiz` (1634), `filterStudents` (1649 — reads `row.dataset.curr` and `.band`), `showTab` (1664), `filterBtns` (1672), `toggleDark` (1678), dark-restore IIFE (1685), `GREETINGS` (1698), `getGreeting` (1706), `updateGreeting` (1711), `WORDS` word-of-the-day array (1718, 30 entries with CEFR levels), `wotdIndex` (1751), `renderWord` (1753), `nextWord` (1762), DOMContentLoaded init (1768), `copyTemplate` (1780, clipboard) |
-| 1788 | `<div id="tweaks-root">` | React mount point — 0 children at runtime today (W1) |
-| 1789–1985 | **DEAD `<script type="text/babel">` block (W1 — never executes)** | `TWEAK_DEFAULTS` (1790), `TweaksApp` (1800, JSX), `mountTweaks` (1871, JSX). Then plain-JS-but-still-dead database logic: `DB_KEY='teach_os_students'` (1882), `initDatabase` (1884, seeds from static rows), `renderStudents` (1907 — W2/W3 live here), `addNewStudent` (1944), DOMContentLoaded init (1981) |
+| 1452–1589 | The 6 modals | `<div class="modal-bg" id="modal-<id>">`: add-student, add-session (Student select now dynamic, real `id`s on every field), add-lesson, add-exam, add-quiz (unchanged, toast-only), view-student (rewritten 2026-07-21 from a static placeholder into a real edit/delete form) |
+| ~1591 | Toast | `<div class="toast" id="toast">` |
+| ~1593–~1610 | **Plain `<script>` #1 — page nav, modals, toasts, quiz, filters, dark mode, greeting, word-of-the-day** | `breadcrumbLabels`, `showPage`, `openModal`/`closeModal`, backdrop-click binding, Escape handler, `showToast`, `saveAndClose`, `answerQuiz`, `filterStudents` (reads `row.dataset.curr`/`.band`), `showTab`, `filterBtns`, `toggleDark`, dark-restore IIFE, `GREETINGS`/`getGreeting`/`updateGreeting`, `WORDS` word-of-the-day array (30 entries), `renderWord`/`nextWord`, `copyTemplate`. Unchanged by the 2026-07-21 fix except the file's absolute line numbers shifted (the modal edits above added lines before this block) |
+| — | `<div id="tweaks-root">` | React mount point — renders `null` until activated via `postMessage({type:'__activate_edit_mode'})` (by the panel's own design, not a defect); confirmed alive via `sailaja-os-browser-verification`'s `verify-crud.mjs` |
+| **~1806–end** | **Plain `<script>` #2 — REWRITTEN 2026-07-21, no longer `text/babel`, W1/W2/W3 SETTLED** | `TWEAK_DEFAULTS`, `TweaksApp` (now plain `React.createElement`/`h()` calls — no JSX syntax), `mountTweaks`. Then the live persistence layer: `esc()` (new — output escaping), `nextId()` (new — monotonic integer ids), `bandFromGradeText()`/`deriveCurrBand()` (new — single source of truth for `curr`/`band`/`currBadge`), `fullCurrLabel()` (new — reverse mapping for the edit form), `DB_KEY`/`SESSIONS_KEY`, `initDatabase` (now with a level-badge fallback, see `sailaja-os-failure-archaeology` Incident 2), `renderStudents` (now escapes output, derives real `data-band`), `addNewStudent`, `viewStudent`/`saveStudentEdit`/`deleteStudent` (new), `populateSessionStudentSelect`/`openSessionModalFor`/`getSessionsForStudent`/`renderViewStudentSessions`/`logSession` (new), DOMContentLoaded init. Absolute line numbers are volatile — re-grep function names rather than citing numbers here. |
 
 ## 2b. Section map — `tweaks-panel.js` (364 lines, generated from the `.jsx`)
 
@@ -92,15 +93,15 @@ Each with a one-line check from the repo root.
    later gets Escape (1619, delegated) but NOT backdrop-close.
 3. **No raw JSX reaches the browser** (decision b/c). The diff adds no
    `text/babel`, and `.jsx` never changes without its recompiled `.js`:
-   `git diff -- index.html | grep -n "text/babel"` (must be empty).
-   The one existing block at 1789 is a known OPEN defect — do not add more,
-   and do not remove/convert it outside the campaign (that is a class-(d)+(c)
-   change → sailaja-os-change-control).
-4. **Storage keys are load-bearing.** `'sailaja-dark'` is live today;
-   `'teach_os_students'` becomes irreplaceable teacher data the moment the
-   W1 fix ships. No rename/removal without a copying migration
+   `git diff -- index.html | grep -n "text/babel"` (must be empty — the
+   former block at decision b was removed 2026-07-21; only comments
+   referencing the historical incident should match now).
+4. **Storage keys are load-bearing.** `'sailaja-dark'`, `'teach_os_students'`,
+   and `'teach_os_sessions'` are all live as of 2026-07-21 — the roster and
+   session log are irreplaceable teacher data the moment Sailaja uses the
+   app. No rename/removal without a copying migration
    (→ sailaja-os-data-model-and-migrations):
-   `grep -n "sailaja-dark\|teach_os_students" index.html`
+   `grep -n "sailaja-dark\|teach_os_students\|teach_os_sessions" index.html`
 5. **External network = exactly lines 8–10, shrinking to zero.** None may
    be ADDED: `grep -n "https://\|http://" index.html | grep -v "svg%22"`
    must show only lines 8–10 (the favicon on line 7 is a data-URI, not a
@@ -113,28 +114,32 @@ Each with a one-line check from the repo root.
    (it binds listeners to existing `.modal-bg` nodes at parse time).
 8. **v2 stays frozen.** `git diff --name-only | grep -x "sailaja_teaching_os_v2.html"` must be empty in every commit.
 
-## 4. Honest weak points — all verified 2026-07-20, all status OPEN
+## 4. Honest weak points — verified 2026-07-20/21; W1-W3 now SETTLED, W4-W7 still OPEN
 
-- **W1 — OPEN. The dead `text/babel` block (1789–1985).** No Babel is loaded
-  anywhere, so the browser silently skips the entire block — TweaksApp AND
-  the whole student database. Measured in a real browser (Playwright,
-  2026-07-20): `typeof addNewStudent === 'undefined'`;
-  `localStorage.getItem('teach_os_students') === null`; `#tweaks-root` has
-  0 children; clicking "Add Student" (1477) throws
-  `ReferenceError: addNewStudent is not defined` and the modal silently does
-  nothing. The flagship feature of HEAD has never executed. Fix plan →
-  sailaja-os-daily-use-campaign; do not patch it ad-hoc.
-- **W2 — OPEN. Stored-XSS-shaped `renderStudents()`.** Lines 1931–1939
-  interpolate `${s.name}`, `${s.parent}`, `${s.focus}`, `${s.schedule}`
-  from user form input into `innerHTML` with no escaping. Currently
-  unreachable ONLY because W1 keeps the code dead — the moment the block is
-  resurrected, this is live. Any fix that revives the database must add
-  escaping in the same change.
-- **W3 — OPEN. `data-band` hardcode.** `renderStudents()` sets
-  `data-band="primary"` on every dynamically rendered row (1928), while
-  `filterStudents` (1649) filters on `dataset.band`. After the first dynamic
-  render, the Gr 3–5 / 6–8 / 9–10 / 11–12 band filters would misreport
-  every student as primary.
+- **W1 — SETTLED 2026-07-21 (was OPEN).** The dead `text/babel` block. No
+  Babel was loaded anywhere, so the browser silently skipped the entire
+  block — TweaksApp AND the whole student database. Measured in a real
+  browser (Playwright, 2026-07-20): `typeof addNewStudent === 'undefined'`;
+  `localStorage.getItem('teach_os_students') === null`; `#tweaks-root` had
+  0 children; clicking "Add Student" threw `ReferenceError`. **Fix**: the
+  block was rewritten as plain `React.createElement` calls (TweaksApp) plus
+  the persistence functions moved into the live plain `<script>`. Verified
+  2026-07-21: `typeof addNewStudent === 'function'`, full
+  add→session→edit→**reload**→delete cycle survives
+  (`sailaja-os-browser-verification`'s `verify-crud.mjs`, 25/25 PASS). Full
+  incident + fix mechanism → `sailaja-os-failure-archaeology` Incident 1.
+- **W2 — SETTLED 2026-07-21 (was OPEN).** Stored-XSS-shaped
+  `renderStudents()`. Every interpolated field now passes through a new
+  `esc()` helper before `innerHTML` interpolation. Fixed in the same change
+  that resurrected the database (was unreachable before that, but latent).
+- **W3 — SETTLED 2026-07-21 (was OPEN).** `data-band` hardcode.
+  `renderStudents()` used to set `data-band="primary"` on every dynamically
+  rendered row regardless of the student's actual band, which would have
+  broken the Gr 6–8/9–10/11–12 filters the moment the store went live. Fixed
+  by adding a real `band` field to the record schema, read directly off the
+  static rows' `data-band` in `initDatabase()` and derived by
+  `deriveCurrBand()`/`bandFromGradeText()` for new/edited records — full
+  derivation rules → `sailaja-os-data-model-and-migrations` §1.
 - **W4 — OPEN. React development builds.** Lines 9–10 load
   `react.development.js` / `react-dom.development.js` — slower, larger,
   console-noisy builds meant for debugging, and the SRI hashes pin exactly
@@ -142,13 +147,18 @@ Each with a one-line check from the repo root.
   decision f) are the target state.
 - **W5 — OPEN. Offline fragility.** Three external requests (8–10). Fonts
   degrade gracefully; a failed React load leaves `window.React` undefined,
-  which today costs nothing (W1) but will break the tweaks panel the moment
-  it is revived. Vendoring (decision f) retires this.
-- **W6 — OPEN. Panel needs a host iframe.** `TweaksPanel` opens only on a
-  `__activate_edit_mode` postMessage from a parent frame
-  (`tweaks-panel.js:134`) — an artifact-style host convention. Served
-  standalone, the panel can never open even after W1 is fixed. Deciding
-  whether Sailaja gets a standalone open control is a campaign/owner call.
+  which now (W1 fixed) would break both the tweaks panel AND the entire
+  student database — higher stakes than when this was written. Vendoring
+  (decision f) retires this; `sailaja-os-frontier-and-method` Item 2.
+- **W6 — OPEN, now higher-stakes now that W1 is fixed. Panel needs a host
+  iframe.** `TweaksPanel` opens only on a `__activate_edit_mode` postMessage
+  from a parent frame (`tweaks-panel.js:134`) — an artifact-style host
+  convention. Served standalone (as this app is for Sailaja), the panel can
+  never open through any UI control of its own — confirmed 2026-07-21 by
+  simulating the postMessage manually in `verify-crud.mjs` to prove the
+  component tree works at all. Deciding whether Sailaja gets a standalone
+  open control (a button that fires the same postMessage) is an owner call,
+  not yet made.
 - **W7 — OPEN (minor). Static-content drift.** The students table holds 15
   seeded rows, but the nav badge (457) and the "All" filter button (711)
   say 14. Symptom of hand-maintained duplicated counts; the real fix is the
@@ -160,8 +170,8 @@ Each with a one-line check from the repo root.
 |---|---|---|---|
 | **A new page** | `<div class="page" id="page-<id>">` inside `<main>`, before line 1444 | Add the `breadcrumbLabels` key (1595) and a sidebar nav button `onclick="showPage('<id>')"` — invariant 1 | Class (a)/(b): browser smoke, both themes |
 | **A new modal** | `<div class="modal-bg" id="modal-<id>">` in the modals section (1452–1589, before the plain script) so backdrop-close binds — invariant 2 | Open via `openModal('<id>')`; close path via `saveAndClose`/`closeModal` | Class (a)/(d) depending on wiring |
-| **A new persisted entity** (new localStorage key, or fields on `teach_os_students` records) | Plain JS in the plain `<script>` block (1593–1786) — NEVER in or alongside the dead babel block | Schema + migration discipline first → sailaja-os-data-model-and-migrations | Class (c)+(d): migration reasoning, old-shape seed test, Playwright PASS/FAIL |
-| **A new tweak** (new knob in the panel) | New reusable **control component** → edit `tweaks-panel.jsx`, recompile, commit the pair (decision c). New **knob wiring** (`TWEAK_DEFAULTS` + TweaksApp) lives in the babel block — which is dead (W1), so any tweak work today is campaign work, not a drive-by edit | Coordinate with sailaja-os-daily-use-campaign | Class (d) + pair discipline |
+| **A new persisted entity** (new localStorage key, or fields on `teach_os_students`/`teach_os_sessions` records) | Plain JS in either plain `<script>` block — both are live now (W1 fixed); put persistence logic near the existing `DB_KEY`/`SESSIONS_KEY` functions in script #2 | Schema + migration discipline first → sailaja-os-data-model-and-migrations. **Real data may now exist** — this is no longer a free design space | Class (c)+(d): migration reasoning, old-shape seed test, Playwright PASS/FAIL, `verify-crud.mjs` still green |
+| **A new tweak** (new knob in the panel) | New reusable **control component** → edit `tweaks-panel.jsx`, recompile, commit the pair (decision c). New **knob wiring** (`TWEAK_DEFAULTS` + TweaksApp) lives in script #2, now live and JSX-free — edit `TweaksApp`'s `h(...)` calls directly, no compilation step needed for that part | — | Class (d) + pair discipline (only if `tweaks-panel.jsx` itself changes) |
 | **Anything needing a framework, build step, npm dep, CDN, or network call** | Nowhere, yet | Stop and get explicit owner sign-off | Sign-off list in sailaja-os-change-control |
 
 ## When NOT to use this skill
@@ -189,10 +199,14 @@ Each with a one-line check from the repo root.
 
 ## Provenance and maintenance
 
-Authored 2026-07-20. All line numbers, ids, counts, and commands verified
-against the working tree at HEAD `9fef6e5` on that date; the dead-block
-runtime facts (W1) are from the lead engineer's real-browser Playwright
-measurements of 2026-07-20. One-line re-verification commands (repo root):
+Originally authored 2026-07-20 against HEAD `9fef6e5` while W1-W3 were live
+defects. Updated 2026-07-21 after the daily-use-campaign Phase 1-3 fix
+landed (a working-tree change at time of writing — confirm it's been
+committed before trusting "SETTLED" claims blindly). The fix added modal
+markup and ~150 lines of script, so **most absolute line numbers in §2's
+section map are now approximate ("~") or removed** — re-grep function names,
+not line numbers, for anything precise. One-line re-verification commands
+(repo root):
 
 - File inventory / line counts: `wc -l index.html sailaja_teaching_os_v2.html tweaks-panel.js tweaks-panel.jsx`
 - Head deps + CDN lines still 8–11: `sed -n '8,11p' index.html`
@@ -200,14 +214,16 @@ measurements of 2026-07-20. One-line re-verification commands (repo root):
 - Page divs (12) and their lines: `grep -n 'id="page-' index.html`
 - Modals (6) and toast: `grep -n 'class="modal-bg"\|id="toast"' index.html`
 - Plain-script bounds and symbols: `grep -n '<script>\|</script>' index.html` and `grep -n "breadcrumbLabels\|function showPage\|function toggleDark\|const WORDS\|function copyTemplate" index.html`
-- Dead block still present at 1789: `grep -n 'type="text/babel"' index.html`
-- DB symbols in the dead block: `grep -n "DB_KEY\|initDatabase\|renderStudents\|addNewStudent" index.html`
-- W2/W3 (unescaped innerHTML, band hardcode): `sed -n '1926,1940p' index.html`
-- Storage keys: `grep -n "sailaja-dark\|teach_os_students" index.html`
-- tweaks-panel.js exports at 351: `grep -n "Object.assign(window" tweaks-panel.js`
-- Panel activation contract: `grep -n "__activate_edit_mode\|__edit_mode_available" tweaks-panel.js`
-- Seeded rows (15) vs badge (14): `grep -c '<tr data-curr=' index.html` and `sed -n '457p;711p' index.html`
+- No live dead block (W1 SETTLED — should match only historical comments):
+  `grep -n 'type="text/babel"' index.html`
+- Persistence + session symbols: `grep -n "DB_KEY\|SESSIONS_KEY\|initDatabase\|renderStudents\|addNewStudent\|saveStudentEdit\|deleteStudent\|logSession\|deriveCurrBand\|function esc" index.html`
+- W2/W3 fixes present: `grep -n "function esc\|function deriveCurrBand\|function bandFromGradeText" index.html`
+- Storage keys: `grep -n "sailaja-dark\|teach_os_students\|teach_os_sessions" index.html`
+- tweaks-panel.js exports: `grep -n "Object.assign(window" tweaks-panel.js`
+- Panel activation contract (W6, still relevant): `grep -n "__activate_edit_mode\|__edit_mode_available" tweaks-panel.js`
+- Seeded rows (15) vs badge (14, still drifted — W7 unfixed): `grep -c '<tr data-curr=' index.html` and `grep -n 'nav-badge">14\|All (14)' index.html`
 - WORDS entry count (30): `grep -c '{ word:' index.html`
-- v2 still static: `grep -c "React\|localStorage\|text/babel" sailaja_teaching_os_v2.html` (must be 0)
+- v2 still static: `grep -c "React\|localStorage\|text/babel" sailaja_teaching_os_v2.html` (must be 0 — but see `sailaja-os-failure-archaeology` Incident 2's caution about the "older" framing for this file)
 - Still zero-build: `ls package.json 2>&1`
+- Persistence layer alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs` (expect `25/25 PASS`)
 - Sibling skills exist: `ls .claude/skills/`

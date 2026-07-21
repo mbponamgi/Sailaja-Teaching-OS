@@ -1,17 +1,18 @@
 ---
 name: sailaja-os-data-model-and-migrations
 description: >
-  Complete catalog of the Sailaja Teaching OS's persisted data model (the
-  'teach_os_students' localStorage store and the 'sailaja-dark' preference)
-  and the migration discipline that will protect Sailaja's real student
-  roster once the store goes live. Load this skill when: adding, renaming,
-  or removing ANY field on a student record; touching initDatabase(),
-  renderStudents(), or addNewStudent(); reading or writing either
-  localStorage key; writing or reviewing a data migration; authoring seed
-  data or test fixtures for the students table; or interpreting the
-  contents of 'teach_os_students'. Also covers the DOM-scrape seeding
-  pipeline (the static HTML table IS the seed fixture) and a canonical
-  minimal seed JSON for browser tests.
+  Complete catalog of the Sailaja Teaching OS's persisted data model —
+  'teach_os_students', 'teach_os_sessions' (live since the 2026-07-21
+  daily-use-campaign fix), and the 'sailaja-dark' preference — and the
+  migration discipline protecting Sailaja's real student roster now that the
+  store is live. Load this skill when: adding, renaming, or removing ANY
+  field on a student or session record; touching initDatabase(),
+  renderStudents(), addNewStudent(), saveStudentEdit(), deleteStudent(), or
+  the session functions; reading or writing any of the three localStorage
+  keys; writing or reviewing a data migration; authoring seed data or test
+  fixtures; or interpreting stored contents. Also covers the DOM-scrape
+  seeding pipeline (the static HTML table IS the seed fixture) and a
+  canonical minimal seed JSON for browser tests.
 ---
 
 # Sailaja OS Data Model and Migrations
@@ -26,131 +27,186 @@ house rule (adopted verbatim from Family Finance OS, 2026-07-20) applies:
 migrations once data is live; removing or renaming keys/fields needs explicit
 owner sign-off.**
 
-## 0. Read this first: the store is DESIGNED BUT NOT LIVE (2026-07-20)
+## 0. Status: LIVE as of 2026-07-21 (daily-use-campaign Phase 1-3 fix)
 
-The entire database layer sits inside `<script type="text/babel">` at
-`index.html:1789` — and **no Babel is loaded anywhere in the page** (React
-18.3.1 UMD and `tweaks-panel.js` are the only scripts; `grep -ci babel`
-matches nothing but the `type` attribute). Browsers skip script tags with
-unknown types, so **the block never executes**. Verified in a real browser
-with Playwright on 2026-07-20: `typeof addNewStudent === 'undefined'`, and
-`teach_os_students` is never created. The "Add Student" button
-(`index.html:1477`) throws on click. HEAD's commit message ("dynamic
-localStorage") oversells; the code is present but dead.
+For over two months (2026-05-12 → 2026-07-20), the entire database layer sat
+inside a dead `<script type="text/babel">` block with no Babel runtime
+loaded — `addNewStudent` was `undefined`, `teach_os_students` was never
+created, clicking "Add Student" threw. Full incident:
+`sailaja-os-failure-archaeology` Incident 1.
 
-Consequences for you:
+**That is now fixed.** `initDatabase`/`renderStudents`/`addNewStudent` (plus
+new session/edit/delete functions) were ported into the live plain
+`<script>` block, and `teach_os_students` is written on first load.
+Verified in a real browser with Playwright, 2026-07-21:
+`typeof addNewStudent === 'function'`, the store holds 15 scraped records
+after load, and a full add→session→edit→**reload**→delete cycle survives
+intact (`sailaja-os-browser-verification`'s `verify-crud.mjs`, 25/25 PASS).
 
-- The schema below is the **designed contract**, not yet live behavior. Say
-  so in anything you write about it.
-- The resurrection fix is a campaign item → `sailaja-os-daily-use-campaign`.
-  The moment it ships, Sailaja's real roster starts accumulating in this key
-  and every rule in §4 applies with full force. Design as if data is live.
-- The `sailaja-dark` key, by contrast, is **live today** — it is written from
-  the plain `<script>` block (line 1593 onward), which does execute.
+**Consequence: `teach_os_students` and `teach_os_sessions` may now hold real
+data the moment Sailaja uses the app.** Every rule in §4 applies with full
+force from here on — no more "design as if data is live," it now actually
+is. `sailaja-dark` remains the only *other* live key, written from the same
+script block (line ~1593 onward originally; both blocks were merged, see §7).
 
-All line numbers below are **as of 2026-07-20** (index.html = 1987 lines,
-HEAD 9fef6e5). Re-verify with the commands in "Provenance and maintenance"
-before trusting them.
+The schema below (§1) is the **live** shape, not a design proposal. A second
+latent bug surfaced the moment the scraper actually ran for the first time —
+see §2.1 and `sailaja-os-failure-archaeology` Incident 2 — fixed in the same
+change.
+
+All line numbers below are **as of 2026-07-20** unless marked otherwise
+(index.html = 1987 lines then; the 2026-07-21 fix added ~150 lines and
+removed the dead block, so absolute line numbers have shifted — re-grep
+before citing, per "Provenance and maintenance").
 
 ## 1. Complete catalog of persisted state
 
-Two localStorage keys. Nothing else persists (`grep -n localStorage
-index.html` → lines 1682, 1686, 1885, 1903, 1910, 1966, 1968 only;
-`tweaks-panel.js` and `tweaks-panel.jsx` contain no localStorage calls).
-localStorage is **per-origin**: `http://localhost:8000` and
+Three localStorage keys as of the 2026-07-21 fix (was two; `teach_os_sessions`
+is new). Nothing else persists (`tweaks-panel.js` contains no localStorage
+calls). localStorage is **per-origin**: `http://localhost:8000` and
 `http://localhost:8001` are different stores — a port change makes the app
 "forget" everything (triage for that → `sailaja-os-debugging-playbook`).
 
 | Key | Status | Value | Written by | Read by |
 |---|---|---|---|---|
-| `teach_os_students` | designed, NOT live | JSON array of student records (schema below) | `initDatabase()` (1903), `addNewStudent()` (1968) | `renderStudents()` (1910), `addNewStudent()` (1966) |
-| `sailaja-dark` | **LIVE** | string `'1'` or `'0'` | `toggleDark()` (1682) | restore IIFE (1686), runs before DOMContentLoaded |
+| `teach_os_students` | **LIVE** since 2026-07-21 | JSON array of student records (schema below) | `initDatabase()`, `addNewStudent()`, `saveStudentEdit()`, `deleteStudent()` | `renderStudents()`, `viewStudent()`, `populateSessionStudentSelect()` |
+| `teach_os_sessions` | **LIVE** since 2026-07-21 (new) | JSON array of session records — also serves as the attendance record (a session with `studentId`+`date` IS attendance; no separate feature was built, per `sailaja-os-frontier-and-method` Item 1) | `logSession()`, `deleteStudent()` (cascade-removes a deleted student's sessions) | `getSessionsForStudent()`, `renderViewStudentSessions()` |
+| `sailaja-dark` | **LIVE** (unchanged) | string `'1'` or `'0'` | `toggleDark()` | restore IIFE, runs before DOMContentLoaded |
 
-`DB_KEY = 'teach_os_students'` is declared at `index.html:1882`. Use the
-constant, never a fresh string literal, in any new code inside that block.
+`DB_KEY = 'teach_os_students'` and `SESSIONS_KEY = 'teach_os_sessions'` are
+declared together near the top of the plain `<script>` block that now holds
+the whole persistence layer. Use the constants, never a fresh string
+literal, in any new code.
 
-### Student record schema
+**Schema decision recorded** (`sailaja-os-daily-use-campaign` Phase 1): kept
+`teach_os_students` as the same bare-array key rather than introducing a
+versioned wrapper — since the key had never been written before the fix,
+this is the cheapest possible case of "no migration needed" (nothing to
+migrate away from). `teach_os_sessions` is a new sibling key, not a field
+added to the students array, so the two entities can be queried/paginated
+independently as the app grows.
 
-One record per student, newest first (`addNewStudent` uses `unshift`,
-line 1967). Exact shape, cross-checked against both writers
-(`initDatabase` 1884–1905, `addNewStudent` 1944–1979) and the reader
-(`renderStudents` 1907–1942):
+### Student record schema (live shape, 2026-07-21)
+
+One record per student, newest first (`addNewStudent` uses `unshift`).
+Written by three functions now (`initDatabase`, `addNewStudent`,
+`saveStudentEdit`) — all three go through the same `deriveCurrBand()`
+helper for the three curriculum-derived fields, so they can't drift out of
+sync the way the pre-fix code's two separate derivations could have:
 
 | Field | Type | Example | Quirks you must know |
 |---|---|---|---|
-| `id` | Number | `1752999000000` or `1752999000000.4271` | **Inconsistent generation**: `addNewStudent` uses `Date.now()` (integer, line 1956); `initDatabase` uses `Date.now() + Math.random()` (non-integer float, line 1901). Both serialize as JSON *numbers*, not strings — seeded ids are floats like `1752999000000.4271`. All 15 seeded records get the same `Date.now()` millisecond; uniqueness rests entirely on `Math.random()`. **Nothing reads `id` today** — no edit/delete path exists — but any future lookup must not assume integer ids. |
-| `name` | String | `"Aarav T."` | Rendered unescaped into innerHTML (line 1932) — XSS-shaped; sanitize before ever rendering untrusted input. |
-| `parent` | String | `"Parent: Mrs. T · 98765XXXXX"` or `"Mrs. Sharma — 98765XXXXX"` | **Prefix inconsistency**: seeded records include the literal `"Parent: "` prefix (innerText of `.student-parent` is scraped verbatim); hand-added records store the raw form input without it (placeholder `"e.g. Mrs. Sharma — 98765XXXXX"`, line 1473). Default `'Parent Info N/A'` when left blank (line 1952). `renderStudents` displays it verbatim either way. |
-| `currBadge` | String | `"CBSE"`, `"Cambridge"`, `"IBDP"`, `"A1/A2"` | `addNewStudent` stores `curr.split(' ')[0]` (line 1959) of the select value (line 1463): `"Cambridge Primary (Gr 3–5)"` → `"Cambridge"`, `"IBDP SL"` → `"IBDP"`, `"A1/A2 Language Tuition"` → `"A1/A2"` (note: NOT `"A1"`). `renderStudents` lowercases it and matches substrings `cbse`/`cambridge`/`ibdp` to pick badge + progress colors; everything else falls through to the A1 styling (lines 1917–1922). |
-| `levelBadge` | String | `"Grade 4"`, `"A1 Week 3"` | Free text; default `'Grade N/A'` (line 1949). |
-| `focus` | String | `"Board exam prep"` | Free text; default `'General'` (line 1953). |
-| `schedule` | String | `"Tue · 4:00 PM"` | `addNewStudent` builds `day.substring(0,3) + ' · ' + time` (line 1962). The time input's placeholder invites `"4:30 PM · 60 min"`, so live values may carry a duration suffix. Display-only — nothing parses it. |
-| `progress` | String | `"55%"`, `"0%"` | **A string, not a number.** `renderStudents` does `parseInt(s.progress) || 0` (line 1924). New students get `'0%'` (line 1963). No write path ever updates it after creation — the "Log" button only opens a modal. |
+| `id` | Number, always integer | `1`, `16` | **Fixed 2026-07-21**: was two inconsistent generators (`Date.now()` vs. `Date.now() + Math.random()`, producing float ids that lose precision on JSON round-trip — see `sailaja-os-browser-verification`'s recorded output for a measured example). Now one `nextId(records)` helper (`max(existing ids) + 1`) used everywhere, always an integer, no collision risk regardless of how many records are created in the same millisecond. `initDatabase()`'s 15 scraped records get ids `1`–`15` in table order. **Now read everywhere** — `viewStudent`, `saveStudentEdit`, `deleteStudent`, and every session's `studentId` foreign-key it. |
+| `name` | String | `"Aarav T."` | **Fixed 2026-07-21**: now passed through `esc()` before `innerHTML` interpolation in `renderStudents()` — the stored-XSS-shaped defect (`sailaja-os-architecture-contract` W2) no longer applies to the render path. Storage itself is still unsanitized (as it should be — escape at the render boundary, not at rest). |
+| `parent` | String | `"Parent: Mrs. T · 98765XXXXX"` or `"Mrs. Sharma — 98765XXXXX"` | **Prefix inconsistency preserved as-is** (not in scope for this fix): seeded records include the literal `"Parent: "` prefix (scraped verbatim from the static rows); hand-added/edited records store the raw form input without it. Default `'Parent Info N/A'` when left blank. Also now escaped before render. |
+| `currBadge` | String | `"CBSE"`, `"Cambridge"`, `"IBDP"`, `"A1/A2"` | Unchanged truncation behavior (`deriveCurrBand()` keeps only the select value's first word) — `"Cambridge Primary (Gr 3–5)"` → `"Cambridge"`, `"IBDP SL"` → `"IBDP"`, `"A1/A2 Language Tuition"` → `"A1/A2"`. `renderStudents` now branches on the new `curr` field (below) instead of re-lowercasing `currBadge` every render. |
+| `curr` | String — **new field** | `'cbse'` \| `'cambridge'` \| `'ibdp'` \| `'a1'` | Normalized curriculum key, set once by `deriveCurrBand()` and stored (previously `renderStudents` re-derived an equivalent `currAttr` from `currBadge` on every render — now derived once at write time). Drives badge color class and the `data-curr` attribute `filterStudents()` matches on. |
+| `band` | String — **new field, fixes a real bug** | `'primary'` \| `'middle'` \| `'secondary'` \| `'senior'` \| `'a1'` | **Fixes the hardcoded-`data-band="primary"` defect** (`sailaja-os-architecture-contract` W-class, `sailaja-os-daily-use-campaign` Phase 1 obligation): the old `renderStudents()` set every dynamic row's `data-band` to the literal string `'primary'`, which would have made the Gr 6–8/9–10/11–12 filter buttons show nobody the moment the store went live. `initDatabase()` now reads the real band straight off each static row's `data-band` attribute (the static rows already carried it correctly); `deriveCurrBand()` derives it for new/edited records — directly from the curriculum select for Cambridge (`Primary`→`primary`, `Lower Secondary`→`middle`, `IGCSE`→`secondary`) and IBDP (always `senior`), or by parsing a grade number out of the free-text level field for CBSE (`bandFromGradeText()`: 3–5→`primary`, 6–8→`middle`, 9–10→`secondary`, 11–12→`senior`; unparseable falls back to `'primary'`, non-fatal). |
+| `levelBadge` | String | `"Grade 4"`, `"Week 14"` | Free text; default `'Grade N/A'`. **Scraper fixed 2026-07-21**: `initDatabase()` used to require a `.badge` span in this column and threw on any row without one — the four A1/A2 rows show plain styled text instead, which aborted the *entire* scrape (0 records, not 11). Now falls back to the cell's own text when no `.badge` child exists. Full incident: `sailaja-os-failure-archaeology` Incident 2. |
+| `focus` | String | `"Board exam prep"` | Free text; default `'General'`. Escaped before render. |
+| `schedule` | String | `"Tue · 4:00 PM"` | Unchanged: `day.substring(0,3) + ' · ' + time`. Display-only — nothing parses it. Escaped before render. |
+| `progress` | String | `"55%"`, `"0%"` | **A string, not a number** (unchanged design). `renderStudents` does `parseInt(s.progress) || 0`. New students still get `'0%'`. **Now editable** — `saveStudentEdit()` writes whatever the profile modal's `#vs-progress` field holds; there's still no separate "progress" UI beyond the student-edit form, per the campaign's Phase 3(c) decision not to build one without Sailaja asking. |
 
 There is no schema-version field, no wrapper object, no metadata — the
-stored value is a bare JSON array of the records above. That is the whole
-database. The other 11 pages (12 `page-*` sections total; only
-`page-students` has any dynamic-data design) and the other 5 modals
-(`modal-add-session`, `modal-view-student`, `modal-add-lesson`,
-`modal-add-quiz`, `modal-add-exam`) persist **nothing** — their forms are
-props.
+stored value is still a bare JSON array of the records above (see the
+schema-decision note in §1 for why no wrapper was introduced). The other 11
+pages and the `modal-add-lesson`/`modal-add-quiz`/`modal-add-exam` modals
+still persist nothing — out of scope for the daily-use-campaign unless
+Sailaja specifically asks (`sailaja-os-frontier-and-method` Item 5).
+
+### Session record schema (new, 2026-07-21)
+
+One record per logged session, append-only (`sessions.push`, no unshift —
+`getSessionsForStudent()` sorts by date descending for display):
+
+| Field | Type | Example | Notes |
+|---|---|---|---|
+| `id` | Number, integer | `1` | Same `nextId()` scheme as students, independent counter (its own array). |
+| `studentId` | Number | `16` | Foreign key into `teach_os_students`' `id`. `deleteStudent()` cascade-deletes every session with a matching `studentId` — there is no orphan-session state reachable through the app's own UI. |
+| `date` | String (`YYYY-MM-DD`) | `"2026-07-21"` | From the `<input type="date">` — required, `logSession()` alerts and refuses to save without it. |
+| `topic` | String | `"Passé composé — irregular verbs"` | Free text, optional. |
+| `performance` | String | `"Excellent"` | One of the add-session modal's four fixed options. |
+| `homework` | String | `"Exercises p.34–35"` | Free text, optional. |
+| `notes` | String | `"Key observations..."` | Free text, optional. |
+| `parentUpdate` | String | `"No — routine class"` | One of the add-session modal's four fixed options; nothing currently *acts* on this beyond storing it (no auto-send — parent comms stay copy-paste WhatsApp templates, `sailaja-os-frontier-and-method` anti-roadmap). |
+
+A session record with `studentId` + `date` **is** the attendance record —
+no separate attendance feature exists or is planned (`sailaja-os-frontier-and-method`
+Item 1 rules this out explicitly; don't re-propose it without new owner
+direction).
 
 ## 2. The seeding pipeline — the static HTML table IS the seed fixture
 
-`initDatabase()` (lines 1884–1905) runs on DOMContentLoaded (line 1982),
-**only when `teach_os_students` is absent**, and builds the first-run
-database by scraping the 15 static `<tr>` rows of `#students-table tbody`
-(lines 737–863: 5 CBSE, 4 Cambridge, 2 IBDP, 4 A1/A2). Per row it reads,
-via `innerText`:
+`initDatabase()` runs on DOMContentLoaded, **only when `teach_os_students`
+is absent**, and builds the first-run database by scraping the 15 static
+`<tr>` rows of `#students-table tbody` (5 CBSE, 4 Cambridge, 2 IBDP,
+4 A1/A2). Per row it reads, via `innerText`:
 
-| Field | Selector (exact, line 1891–1899) |
+| Field | Selector |
 |---|---|
 | name | `.student-name` (row skipped entirely if absent) |
 | parent | `.student-parent` |
 | currBadge | `td:nth-child(2) .badge` |
-| levelBadge | `td:nth-child(3) .badge` |
+| levelBadge | `td:nth-child(3) .badge`, **falling back to `td:nth-child(3)` itself if no `.badge` child exists** (fixed 2026-07-21 — see §2.1) |
 | focus | `td:nth-child(4)` |
 | schedule | `td:nth-child(5)` |
 | progress | `.mini-pct` |
+| curr, band | `row.dataset.curr`, `row.dataset.band` — read directly, not derived (fixed 2026-07-21, see §1's `band` field entry) |
 
 `renderStudents()` then wipes the tbody (`innerHTML = ''`) and rebuilds it
 from the store. The static rows are only ever visible until that first
-rerender.
+rerender (or if JS is disabled entirely — see §2.1).
 
-### The fragility contract (all consequences of the design above)
+### 2.1 Incident: the level-badge selector aborted the ENTIRE scrape (found and fixed 2026-07-21)
+
+The four A1/A2 rows show their level as plain styled text ("Week 14"), not a
+`.badge` span — `td:nth-child(3) .badge` returns `null` for those rows, and
+the original code called `.innerText` on it unconditionally. That threw
+partway through the `forEach`, which meant `localStorage.setItem` **never
+ran and the whole 15-row scrape produced zero stored records**, not "11
+records, 4 missing." This was found the moment the persistence fix first ran
+for real (`sailaja-os-browser-verification`'s `verify-crud.mjs` caught it on
+its very first assertion) — full writeup:
+`sailaja-os-failure-archaeology` Incident 2. Fixed with a fallback to the
+cell's own text when no `.badge` child exists.
+
+**The general lesson survives the fix**: this scraper is still a DOM-shape
+contract, not decoration — the fallback only covers the one column that was
+actually inconsistent. Any *other* selector still going `null` (a genuinely
+missing `.student-parent`, an empty `td:nth-child(4)`) still throws and still
+aborts the whole scrape. Treat the tbody HTML as a **data fixture under
+change control**.
+
+### The fragility contract (remaining, after the 2026-07-21 fixes)
 
 1. **Editing the static table edits the first-run database.** Reordering or
    inserting a `<td>` shifts every `nth-child` selector — fields land in the
    wrong properties, or seeding throws. Renaming `.student-name`,
-   `.student-parent`, `.mini-pct`, or `.badge` breaks the scrape. Treat the
-   tbody HTML (lines 736–864) as a **data fixture under change control**,
-   not decoration.
-2. **One missing selector aborts the entire seed.** Only `.student-name` is
-   null-guarded (line 1892). A row with a name but any other missing element
-   throws a TypeError out of the `forEach`, `setItem` never runs, and
-   `renderStudents` never gets called that load. (It will retry next load,
-   since the key is still absent.)
+   `.student-parent`, `.mini-pct`, or `.badge` breaks the scrape.
+2. **A missing selector (other than the now-tolerant level-badge column)
+   still aborts the entire seed.** Only `.student-name` and `levelBadge`
+   are null-guarded. Any other row with a missing element still throws a
+   TypeError out of the `forEach` — `setItem` never runs, and (since the key
+   stays absent) it retries every load until fixed.
 3. **Seeding is one-shot.** Once the key exists, the static rows are dead
    weight: editing them changes nothing Sailaja sees, and the HTML silently
-   diverges from her real roster. Never "fix" live data by editing the table.
-4. **`renderStudents` loses band data.** Static rows carry correct
-   `data-curr` and `data-band` attributes used by `filterStudents()`
-   (lines 1649–1661); the dynamic render reconstructs `data-curr` from
-   `currBadge` but **hardcodes `data-band="primary"`** (line 1928). After
-   the store goes live, the Gr 3–5 filter shows everyone and Gr 6–8/9–10/
-   11–12 show no one. Known open defect — fixing it properly means adding a
-   band field to the record (see §5 checklist).
-5. **Hardcoded counts.** The filter buttons' labels (lines 711–719, e.g.
-   "All (14)" — which already disagrees with the 15 actual rows) never
-   update from the store.
-6. **No JSON error handling.** `renderStudents` does a bare
+   diverges from her real roster. Never "fix" live data by editing the table
+   — use the app's own Add Student / edit flow, or
+   `sailaja-os-browser-verification`'s `dump-store.mjs` for scripted seeding.
+4. ~~`renderStudents` loses band data~~ **Fixed 2026-07-21** — see §1's
+   `band` field entry.
+5. **Hardcoded counts unchanged (out of scope for this fix).** The filter
+   buttons' labels (e.g. "All (14)", which already disagrees with the 15
+   actual rows) and the nav badge never update from the store — explicitly
+   deferred, `sailaja-os-frontier-and-method` Item 5.
+6. **No JSON error handling (unchanged).** `renderStudents` does a bare
    `JSON.parse(localStorage.getItem(DB_KEY)) || []` — a *missing* key is
-   fine (`JSON.parse(null)` → `null` → `[]`), but a *corrupted* value throws
-   uncaught and the table renders empty. Never hand-edit the stored JSON
-   into an invalid state on a machine with real data.
-7. **Unescaped render.** Every field is interpolated raw into `innerHTML`
-   (lines 1931–1939). A student name containing `<` or quotes breaks the
-   row at best. Any hardening of this must not alter stored data.
+   fine, but a *corrupted* value throws uncaught and the table renders
+   empty. Never hand-edit the stored JSON into an invalid state on a machine
+   with real data.
+7. ~~Unescaped render~~ **Fixed 2026-07-21** — see §1's `name` field entry
+   (`esc()` now runs on every interpolated field in `renderStudents()` and
+   `renderViewStudentSessions()`).
 
 ## 3. How to inspect the store
 
@@ -163,34 +219,46 @@ Console one-liners, with expected output in both worlds:
 ```js
 // The roster (raw)
 localStorage.getItem('teach_os_students')
-// TODAY (script dead):      null  — the key is never created
-// POST-FIX, first load:     '[{"id":175...,"name":"Aarav T.",...}]'  (15 scraped records)
+// First load on a fresh profile: '[{"id":1,"name":"Aarav T.",...}]' (15 scraped records)
 
 // Count records safely
 JSON.parse(localStorage.getItem('teach_os_students') || '[]').length
-// TODAY: 0        POST-FIX first run: 15 (grows/changes with real use)
+// First run: 15 (grows/changes with real use)
 
-// Is the database layer even alive?
+// Sessions (new key)
+JSON.parse(localStorage.getItem('teach_os_sessions') || '[]').length
+// 0 until the first "Save Session"
+
+// Is the database layer alive? (should be 'function' — if 'undefined', the
+// persistence layer has regressed; see sailaja-os-failure-archaeology
+// Incident 1 before assuming you know why)
 typeof addNewStudent
-// TODAY: 'undefined'        POST-FIX: 'function'
 
-// Dark-mode preference (live today)
+// Dark-mode preference (live, unaffected by this fix)
 localStorage.getItem('sailaja-dark')
 // null until first toggle, then '1' (dark) or '0' (light)
 ```
 
 If `typeof addNewStudent` is `'undefined'`, do not waste time debugging the
-store — the script block is not executing (§0).
+store — the persistence layer isn't executing at all (check for a
+regressed `<script type="text/babel">` block first).
 
 ## 4. Migration discipline
 
 **Current state, stated honestly: NO versioning exists.** There is no
-schema-version field, no `load()`-style migration hook, and no migration has
-ever been written in this repo. The bare-array shape in §1 is the implicit
-v1. That is acceptable *only* while the store is dead.
+schema-version field, no migration hook, and no migration has ever been
+written in this repo. The bare-array shape in §1 (now including `curr` and
+`band`) is the implicit v1. **The 2026-07-21 fix did not need a migration**
+because `teach_os_students` had never been written before it — there was no
+old-shape data to migrate away from (`sailaja-os-daily-use-campaign` Phase
+1's reasoning). That is the *last* free pass this repo gets: from here on,
+`teach_os_students` and `teach_os_sessions` can hold Sailaja's real data, and
+the very next field-shape change is the first one this discipline actually
+has to earn its keep on.
 
-The following is the **CANDIDATE discipline — not yet adopted** (no code
-implements it; adopt it with the first schema change after data goes live):
+The following is the **CANDIDATE discipline — not yet exercised for real**
+(no migration has actually been written yet; adopt it at the next schema
+change):
 
 1. **Read–migrate–write on load.** Add a migration step in the
    DOMContentLoaded handler (line 1981), between `initDatabase()` and
@@ -225,18 +293,21 @@ implements it; adopt it with the first schema change after data goes live):
 
 ## 5. Field-change checklist
 
-**Adding a field** (e.g. `band`) — update ALL of, in one change:
+**Adding a field** (e.g. a hypothetical `attendanceStatus`) — update ALL of,
+in one change:
 
-1. `addNewStudent()` object literal (line 1955) — plus a form input in
-   `modal-add-student` (lines ~1459–1477) if user-entered.
-2. `renderStudents()` (line 1907) — render it, with a tolerant default for
-   pre-existing records that lack it.
-3. `initDatabase()` scrape (line 1890) — derive it from the static rows
-   (for `band`: `row.dataset.band`), or old fixtures won't carry it.
+1. `addNewStudent()`'s object literal — plus `saveStudentEdit()`'s merge, and
+   a form input in `modal-add-student`/the view-student modal if user-entered.
+2. `renderStudents()` — render it, with a tolerant default for pre-existing
+   records that lack it.
+3. `initDatabase()`'s scrape — derive it from the static rows, or old
+   fixtures won't carry it.
 4. The canonical seed JSON in §6 of this skill, and the field table in §1.
 5. Verify in a real browser on both paths: fresh seed (key absent) and
    existing store (inject §6 seed *without* the new field, confirm no
-   crash and sensible default) → `sailaja-os-browser-verification`.
+   crash and sensible default) → `sailaja-os-browser-verification`. Run
+   `verify-crud.mjs` too — a new field must not break the add/edit/delete
+   flow it exercises.
 
 **Removing or renaming a field or key**: owner sign-off first
 (`sailaja-os-change-control`), then a copy-preserving migration per §4 —
@@ -245,17 +316,24 @@ be preserved, not stripped.
 
 ## 6. Canonical minimal seed + injection
 
-Three records, valid against §1, exercising: integer id (manual-add style),
-float id (scrape style), all three badge-mapping branches
-(CBSE / Cambridge / fall-through A1), the `"Parent: "` prefix quirk, the
-`'A1/A2'` split quirk, and the `'0%'` new-student default.
+Three records, valid against the live §1 schema (integer ids, `curr`/`band`
+present), exercising: all three curriculum branches (CBSE with a
+grade-derived band / Cambridge with a select-derived band / A1 fall-through),
+the `"Parent: "` prefix quirk, the `'A1/A2'` split quirk, and the `'0%'`
+new-student default. One session record for the first student exercises
+`teach_os_sessions`.
 
 ```json
-[
-  {"id": 1752999000000, "name": "Test Aarav", "parent": "Parent: Mrs. T · 98765XXXXX", "currBadge": "CBSE", "levelBadge": "Grade 4", "focus": "French basics · grammar", "schedule": "Tue · 4:00 PM", "progress": "55%"},
-  {"id": 1752999000000.4271, "name": "Test Meera", "parent": "Mrs. M — 91234XXXXX", "currBadge": "Cambridge", "levelBadge": "Grade 7", "focus": "IGCSE prep", "schedule": "Thu · 5:00 PM", "progress": "40%"},
-  {"id": 1752999000001, "name": "Test Zara", "parent": "Parent Info N/A", "currBadge": "A1/A2", "levelBadge": "A1 Week 3", "focus": "General", "schedule": "Sat · 10:00 AM", "progress": "0%"}
-]
+{
+  "teach_os_students": [
+    {"id": 1, "name": "Test Aarav", "parent": "Parent: Mrs. T · 98765XXXXX", "currBadge": "CBSE", "curr": "cbse", "band": "primary", "levelBadge": "Grade 4", "focus": "French basics · grammar", "schedule": "Tue · 4:00 PM", "progress": "55%"},
+    {"id": 2, "name": "Test Meera", "parent": "Mrs. M — 91234XXXXX", "currBadge": "Cambridge", "curr": "cambridge", "band": "secondary", "levelBadge": "Grade 9", "focus": "IGCSE prep", "schedule": "Thu · 5:00 PM", "progress": "40%"},
+    {"id": 3, "name": "Test Zara", "parent": "Parent Info N/A", "currBadge": "A1/A2", "curr": "a1", "band": "a1", "levelBadge": "A1 Week 3", "focus": "General", "schedule": "Sat · 10:00 AM", "progress": "0%"}
+  ],
+  "teach_os_sessions": [
+    {"id": 1, "studentId": 1, "date": "2026-07-20", "topic": "Passé composé", "performance": "Good — on track", "homework": "", "notes": "", "parentUpdate": "No — routine class"}
+  ]
+}
 ```
 
 Inject (browser console, or `page.addInitScript` before `goto` in
@@ -263,9 +341,12 @@ Playwright — full test mechanics → `sailaja-os-browser-verification`):
 
 ```js
 localStorage.setItem('teach_os_students', JSON.stringify([
-  {"id": 1752999000000, "name": "Test Aarav", "parent": "Parent: Mrs. T · 98765XXXXX", "currBadge": "CBSE", "levelBadge": "Grade 4", "focus": "French basics · grammar", "schedule": "Tue · 4:00 PM", "progress": "55%"},
-  {"id": 1752999000000.4271, "name": "Test Meera", "parent": "Mrs. M — 91234XXXXX", "currBadge": "Cambridge", "levelBadge": "Grade 7", "focus": "IGCSE prep", "schedule": "Thu · 5:00 PM", "progress": "40%"},
-  {"id": 1752999000001, "name": "Test Zara", "parent": "Parent Info N/A", "currBadge": "A1/A2", "levelBadge": "A1 Week 3", "focus": "General", "schedule": "Sat · 10:00 AM", "progress": "0%"}
+  {"id": 1, "name": "Test Aarav", "parent": "Parent: Mrs. T · 98765XXXXX", "currBadge": "CBSE", "curr": "cbse", "band": "primary", "levelBadge": "Grade 4", "focus": "French basics · grammar", "schedule": "Tue · 4:00 PM", "progress": "55%"},
+  {"id": 2, "name": "Test Meera", "parent": "Mrs. M — 91234XXXXX", "currBadge": "Cambridge", "curr": "cambridge", "band": "secondary", "levelBadge": "Grade 9", "focus": "IGCSE prep", "schedule": "Thu · 5:00 PM", "progress": "40%"},
+  {"id": 3, "name": "Test Zara", "parent": "Parent Info N/A", "currBadge": "A1/A2", "curr": "a1", "band": "a1", "levelBadge": "A1 Week 3", "focus": "General", "schedule": "Sat · 10:00 AM", "progress": "0%"}
+]));
+localStorage.setItem('teach_os_sessions', JSON.stringify([
+  {"id": 1, "studentId": 1, "date": "2026-07-20", "topic": "Passé composé", "performance": "Good — on track", "homework": "", "notes": "", "parentUpdate": "No — routine class"}
 ]));
 location.reload();
 ```
@@ -274,16 +355,16 @@ Reset to a virgin first-run state:
 
 ```js
 localStorage.removeItem('teach_os_students');
+localStorage.removeItem('teach_os_sessions');
 location.reload();
 ```
 
-Expected behavior TODAY (dead script): injection and reset are inert — the
-static 15-row table renders regardless, because `renderStudents` never runs.
-Expected POST-FIX: after injection + reload the table shows exactly the 3
-seeded rows (injection also suppresses the DOM scrape, since the key
-exists); after reset + reload, `initDatabase` re-seeds the 15 static rows.
-Use the seed both ways: as fixture data for UI tests and as the "existing
-store" input for migration proofs (§4.5).
+After injection + reload the table shows exactly the 3 seeded rows
+(injection suppresses the DOM scrape, since the key already exists); after
+reset + reload, `initDatabase` re-seeds the 15 static rows and
+`teach_os_sessions` stays absent until a session is logged. Use the seed
+both ways: as fixture data for UI tests and as the "existing store" input
+for migration proofs (§4.5) once a migration is actually written.
 
 ## When NOT to use this skill
 
@@ -292,26 +373,31 @@ store" input for migration proofs (§4.5).
   content* of seeds; that one owns the injection *mechanics*).
 - "Data disappeared" / table blank / live triage right now →
   `sailaja-os-debugging-playbook`.
-- Shipping the fix that resurrects the dead script block →
+- The plan and phasing behind this fix, and remaining daily-use-campaign
+  work (further UI polish, offline-completeness, backup) →
   `sailaja-os-daily-use-campaign`.
 - Whether a change may commit, and what needs owner sign-off →
   `sailaja-os-change-control`.
 
 ## Provenance and maintenance
 
-All facts verified 2026-07-20 against the working tree at HEAD 9fef6e5
-(index.html = 1987 lines) by reading the code; dead-script status verified
-both structurally (no Babel loader) and in a headless browser (Playwright:
-`typeof addNewStudent === 'undefined'`, key never created). Re-verify with
-(run from repo root):
+Schema originally cataloged 2026-07-20 against HEAD `9fef6e5` while the
+persistence layer was still dead; updated 2026-07-21 after the
+daily-use-campaign Phase 1-3 fix landed (working-tree change at time of
+writing — verify it's been committed before trusting "LIVE" claims blindly).
+Every "live" fact above (§0, §1's `curr`/`band`/integer-`id` fields, §2.1's
+incident) was verified in a headless browser via
+`sailaja-os-browser-verification`'s `verify-crud.mjs` (25/25 PASS) the same
+day. Re-verify with (run from repo root):
 
-- Every localStorage touch point: `grep -n "localStorage" index.html tweaks-panel.js tweaks-panel.jsx`
-- The whole database layer: `sed -n '1881,1985p' index.html`
-- Dead-script check: `grep -n "text/babel\|babel" index.html` (a Babel `<script src>` appearing means §0 is obsolete — rewrite it)
-- Seed selectors and record shape: `sed -n '1884,1905p' index.html`
-- Static fixture rows: `awk '/<tbody>/,/<\/tbody>/' index.html | grep -c "student-name"` (currently 15)
-- Band-loss defect: `grep -n "data-band" index.html` (line 1928 hardcodes `'primary'`)
-- Add-student form ids and select values: `grep -n "new-student-" index.html`
-- Dark-mode key: `grep -n "sailaja-dark" index.html`
+- Persistence layer alive: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs` — expect `25/25 PASS`.
+- Every localStorage touch point: `grep -n "localStorage" index.html tweaks-panel.js`
+- The whole database + session layer: `grep -n "DB_KEY\|SESSIONS_KEY" index.html` then read outward from there.
+- No dead script remains: `grep -n "text/babel" index.html` (expect only comment references to the historical incident, no live `<script type="text/babel">` tag).
+- Static fixture rows: `awk '/<tbody>/,/<\/tbody>/' index.html | grep -c "student-name"` (currently 15).
+- Level-badge fallback still present (§2.1's fix): `grep -n "levelEl = row.querySelector" index.html`.
+- Add-student/view-student form ids: `grep -n "new-student-\|vs-\|session-" index.html`.
+- Dark-mode key: `grep -n "sailaja-dark" index.html`.
 
-If any grep result contradicts this file, the CODE wins — update this skill.
+If any grep result or verify-script output contradicts this file, the CODE
+(and the browser) wins — update this skill.

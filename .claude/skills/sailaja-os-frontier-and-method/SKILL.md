@@ -52,31 +52,41 @@ AI-native features (quiz generation, analytics/ML), parent-facing surfaces,
 multi-user. Do not re-propose these without new, explicit owner direction in
 the conversation — "it would be easy to add" is not direction.
 
-**Priority #1 today** is the daily-use campaign — resurrecting the dead
-persistence layer so the app is actually usable. That work is owned and
-sequenced by `sailaja-os-daily-use-campaign`; this file only records that
-Item 1 below outranks everything else.
+**Priority #1** was the daily-use campaign — resurrecting the dead
+persistence layer so the app is actually usable. **Status update,
+2026-07-21: Item 1's core CRUD (students, sessions, edit/delete) is DONE**,
+verified by a 25-check real-browser add→session→edit→reload→delete
+regression (`sailaja-os-browser-verification`'s `verify-crud.mjs`). That
+work was owned and sequenced by `sailaja-os-daily-use-campaign`, whose phase
+statuses now reflect this; see Item 1 below for what shipped and what's
+still open within it. Items 2-4 (offline-complete, fees ledger, backup) are
+unaffected and remain CANDIDATE.
 
 ---
 
 # HALF 1 — The (modest) frontier
 
-## Ground truth: what the demo pretends vs. what exists (verified 2026-07-20)
+## Ground truth: what the demo pretends vs. what exists
 
-The app is a static demo wearing a working app's clothes. Every roadmap item
-below is anchored to a verified gap in this table:
+**Status as of 2026-07-21: the first four rows below are FIXED** (the
+daily-use-campaign Phase 1-3 fix — verified by
+`sailaja-os-browser-verification`'s `verify-crud.mjs`, 25/25 PASS). Kept in
+the table with their fix noted, not deleted, so the table stays an honest
+record of what changed and what's still true. Rows below that are
+unchanged as of 2026-07-20 and still describe real gaps:
 
-| Surface | Looks like | Actually is |
+| Surface | Looks like | Status |
 |---|---|---|
-| Students table | Live roster with per-row "Log" buttons | Static HTML rows (`index.html:737–870`); the dynamic layer (`DB_KEY 'teach_os_students'`, `initDatabase`/`renderStudents`/`addNewStudent`, lines 1882–1984) sits in a `<script type="text/babel">` block at line 1789 that **never executes** — no Babel is loaded (Playwright-verified; see Half 2's worked example) |
-| Log a session | "Save Session" button + full form (modal `index.html:1483–1510`) | Zero storage design: no input has an `id`, the student `<select>` (line 1490) hardcodes 15 names, and Save calls `saveAndClose()` (line 1631) — which only closes the modal and shows a toast |
-| Student edit/delete | Clicking a row opens "Student Profile" | The view-student modal (lines 1578–1588) is a labeled placeholder ("Replace with actual data when setting up the real database", line 1582) with only Close and "Log Session →" buttons. **No edit or delete path exists anywhere** — grep for edit/delete/remove functions finds only CSS-class toggles |
-| Attendance | Implied by session history cards | Zero hits for "attendance" in the codebase; the "Recent Sessions" cards (dashboard 594–618, per-curriculum 936–981) are hardcoded April dates |
-| Fees | "Fee Reminder" card on the Parent Comms page | A copy-to-clipboard WhatsApp text template with fill-in blanks (`t-fee`, lines 1382–1391). No amounts, no ledger, no payment records — zero hits for payment/invoice/ledger |
-| Schedule | "Weekly Master Schedule" table | Hardcoded static table for "May 2026" (page at line 1125); "+ Schedule Class" opens the same toast-only add-session modal |
-| Exams / Lessons / Quiz bank | Add modals with Save buttons | All static pages; add-lesson (1530), add-exam (1552), add-quiz (1572) all route to the same toast-only `saveAndClose()` |
-| Counts everywhere | "14 students", "9 classes this week" | Hardcoded strings (nav badge line 457, dashboard subtitle line 513, page subtitle line 704) |
-| What actually persists | — | Exactly one thing: the dark-mode flag, localStorage key `sailaja-dark` (lines 1682/1686), set from the live plain `<script>` block (lines 1593–1786) |
+| Students table | Live roster with per-row "Log" buttons | **FIXED 2026-07-21.** Was static HTML rows with a dead `initDatabase`/`renderStudents`/`addNewStudent` layer (dead `<script type="text/babel">` block, no Babel loaded). Now live: 15 rows scraped on first load, add/edit/delete all persist and survive reload. |
+| Log a session | "Save Session" button + full form | **FIXED 2026-07-21.** Was zero storage design (no `id`s, hardcoded 15-name `<select>`, toast-only Save). Now: real `id`s, a dynamically populated student select, `logSession()` writes to the new `teach_os_sessions` key — this doubles as attendance, per this item's own design call below. |
+| Student edit/delete | Clicking a row opens "Student Profile" | **FIXED 2026-07-21.** Was a labeled placeholder ("Replace with actual data when setting up the real database") with no edit/delete path at all. Now a real form: edit any field, delete with confirm (cascades to that student's sessions). |
+| Progress updates | A progress bar on each row | **FIXED 2026-07-21** (folded into the edit path, per this item's Phase 3(c) decision below — no separate progress UI was built). Editable via the student profile's Progress field; still a free-text `"NN%"` string, unchanged format. |
+| Attendance | Implied by session history cards | Still no dedicated feature — **by design**, unchanged from the original plan: a session record (now real) with `studentId`+`date` IS the attendance record. The dashboard/per-curriculum "Recent Sessions" cards are still hardcoded static dates; wiring them to real session data was not in this fix's scope. |
+| Fees | "Fee Reminder" card on the Parent Comms page | Unchanged. A copy-to-clipboard WhatsApp text template with fill-in blanks. No amounts, no ledger, no payment records — still needs an explicit owner yes before any work starts (Item 3, below). |
+| Schedule | "Weekly Master Schedule" table | Unchanged. Hardcoded static table; "+ Schedule Class" opens the now-functional add-session modal, but nothing populates the schedule table from real data yet. |
+| Exams / Lessons / Quiz bank | Add modals with Save buttons | Unchanged. Still toast-only `saveAndClose()` — explicitly out of this fix's scope (Item 5, "only if Sailaja actually asks"). |
+| Counts everywhere | "14 students", "9 classes this week" | Unchanged. Still hardcoded strings — deliberately deferred (Item 5); adding a student does NOT update the nav badge or page subtitles yet. |
+| What actually persists | — | Now three keys: `sailaja-dark` (unchanged), `teach_os_students`, `teach_os_sessions` (both new-live 2026-07-21). Full schema → `sailaja-os-data-model-and-migrations`. |
 
 ## How to read the catalog
 
@@ -89,47 +99,60 @@ Playwright evidence mechanics). "You have a result when…" is the falsifiable
 milestone — predictions written BEFORE the verifying probe runs (Half 2,
 evidence bar).
 
-## Item 1 — Persistence everywhere the demo pretends (CANDIDATE — top priority)
+## Item 1 — Persistence everywhere the demo pretends (DONE 2026-07-21, core CRUD)
 
-**Why it matters for daily use:** this IS daily use. A teacher who logs a
+**Status: the four gaps below are all fixed.** Full evidence, mechanism, and
+recorded output: `sailaja-os-failure-archaeology` Incident 1 (the fix),
+Incident 2 (a second bug the fix's own verification caught),
+`sailaja-os-browser-verification` (`verify-crud.mjs`, 25/25 PASS),
+`sailaja-os-data-model-and-migrations` (live schema).
+
+**Why it mattered for daily use:** this IS daily use. A teacher who logs a
 session and loses it on reload will (rightly) go back to her notebook. Four
-verified gaps, in the order they hurt: (1) **sessions log** — the "Log"
-button exists on every student row and the modal is fully designed, but has
-no ids and no save handler; (2) **attendance** — no feature at all; note a
-session record with a student + date IS the attendance record, so do not
-build a separate attendance feature; (3) **student edit/delete** — currently
-impossible: no path exists (verified above), so a typo in a student's name is
-permanent; (4) **progress updates** — the progress % is a static cell / dead
-`renderStudents()` interpolation with no way to change it.
+verified gaps, now all closed: (1) **sessions log** — real `id`s, dynamic
+student select, `logSession()` persists to a new `teach_os_sessions` key;
+(2) **attendance** — deliberately NOT built as a separate feature; a session
+record with a student + date IS the attendance record, per the original
+design call, still correct; (3) **student edit/delete** — the view-student
+modal is now a real form with Save and Delete (cascade-deletes sessions);
+(4) **progress updates** — folded into the edit path per step 3 below,
+rather than building a dedicated progress UI (no owner ask for one existed).
 
-**First three steps in this repo:**
+**What actually happened, vs. the three steps originally planned:**
 
-1. Design the store before writing code (data-model gate): one versioned
-   localStorage object — e.g. `{v:1, students:[...], sessions:[...]}` —
-   deciding explicitly the fate of the never-written `teach_os_students` key
-   and of the dead babel block's record shape (`id, name, parent, currBadge,
-   levelBadge, focus, schedule, progress`, lines 1901/1955).
-2. Port the dead persistence functions out of the `text/babel` block into the
-   live plain `<script>` (lines 1593–1786) — port, do NOT add Babel at
-   runtime (change-control non-negotiable #3), and do not copy the block's
-   latent defects verbatim (unescaped `innerHTML` interpolation at
-   1931–1939; hardcoded `data-band="primary"` at 1928).
-3. Give the add-session modal inputs real `id`s and a real save handler
-   appending to `sessions`; then replace the view-student placeholder with a
-   real profile: fields populated from the record, an Edit-save path, and a
-   Delete with confirm.
+1. **Store design, decided**: kept `teach_os_students` as the same bare
+   array (no versioned wrapper) since the key had never been written — the
+   cheapest possible "no migration needed" case. Added a new sibling key
+   `teach_os_sessions` rather than nesting sessions inside student records.
+   Full reasoning → `sailaja-os-data-model-and-migrations` §1's schema-decision
+   note.
+2. **Ported the persistence functions** out of the dead `text/babel` block
+   into a (now JSX-free) plain `<script>` — did NOT add Babel at runtime.
+   Fixed both latent defects in the same change: `renderStudents()` now
+   escapes every interpolated field (`esc()`), and `data-band` is now a real
+   derived field instead of a hardcoded `'primary'`. **Also fixed a defect
+   the plan didn't anticipate**: the level-badge scraper threw on the four
+   A1/A2 rows (no `.badge` span in that column), which silently produced
+   ZERO records instead of 15 — caught by the verify script's first
+   assertion. Full writeup → `sailaja-os-failure-archaeology` Incident 2.
+3. **Wired the add-session modal and rebuilt view-student** as planned —
+   plus `TweaksApp` (the dead block's other occupant) was rewritten as
+   plain `React.createElement` calls so the tweaks panel is no longer
+   collateral damage of the JSX ban.
 
-**You have a result when…** a Playwright script (predictions written first)
-drives the real UI through the full CRUD loop: add a student (student count
-N→N+1), log a session for her (sessions 0→1), edit her name, **reload the
-page**, and asserts the new name and both counts survived; then deletes the
-student and asserts N and the session's handling match the documented design.
-NEGATIVE prediction: dark-mode toggle and all static pages still work.
+**Result, measured** (not just claimed — this is what "you have a result
+when…" asked for): a Playwright script drove the real UI through add a
+student (15→16) → log a session (0→1) → edit her name → **reload the page**
+→ delete her (16→15, cascade-removed her session, 1→0). All 25 assertions
+passed, including two negative controls (dark mode, `filterStudents`) and
+zero console/page errors across the whole run.
 
-**Gates:** data-model (new schema — the most consequential decision this repo
-will make), change-control classes (c)+(d), browser-verification.
-**Execution owner:** `sailaja-os-daily-use-campaign` — if that campaign is
-active, follow its phases; this entry just records why the item is #1.
+**Gates passed:** data-model (schema decision recorded), change-control
+classes (c)+(d) (no owner sign-off was required — no key was renamed or
+removed), browser-verification (25/25 PASS, `verify-crud.mjs` graduated into
+the permanent suite).
+**Execution record:** `sailaja-os-daily-use-campaign` Phases 1-3 marked done
+there; this entry records the roadmap-level outcome.
 
 ## Item 2 — Offline-complete app (CANDIDATE)
 
@@ -435,27 +458,28 @@ building it.
 
 ## Provenance and maintenance
 
-Authored 2026-07-20. All app-state claims verified that day against the
-working tree at HEAD `9fef6e5` by grep/read of `index.html` (1987 lines);
-the dead-script mechanism was confirmed in a real browser (Playwright) the
-same day. One-line re-checks before relying on volatile facts:
+Authored 2026-07-20 against HEAD `9fef6e5` while the persistence layer was
+dead. Updated 2026-07-21 after the daily-use-campaign Phase 1-3 fix closed
+Item 1's four gaps (working-tree change at time of writing — confirm it's
+committed before trusting "DONE" claims blindly). One-line re-checks before
+relying on volatile facts:
 
 - **Owner decisions dated 2026-07-20 — re-confirm with the owner before
   overriding anything in "The owner's frame" or the Anti-Roadmap.** They are
   recorded here precisely so silence doesn't get read as permission.
-- Dead babel block still present/dead: `grep -n 'type="text/babel"' index.html`
-  (Item 1 / the campaign landing makes much of Half 1's table historical —
-  update the table, keep the worked example).
-- No student edit/delete yet: `grep -n "editStudent\|deleteStudent\|removeStudent" index.html` (expect no hits)
-- Add-session modal still storage-free: `sed -n '1483,1510p' index.html`
-  (inputs without `id`, Save → `saveAndClose`)
-- `saveAndClose` still toast-only: `grep -n "function saveAndClose" index.html`
-- No fees feature beyond the template: `grep -ni "fee\|payment\|ledger" index.html`
-- No attendance feature: `grep -ci attendance index.html` (expect 0)
-- No export/backup feature: `grep -ni "export\|backup\|download" index.html` (expect 0 feature hits)
-- External requests still lines 8–10: `grep -n "https://" index.html`
-- Live localStorage keys: `grep -n "localStorage" index.html`
-- Hardcoded counts: `grep -n "nav-badge\|9 classes this week" index.html`
+- No live dead babel block (Item 1 fixed 2026-07-21 — should match only
+  historical comments): `grep -n 'type="text/babel"' index.html`
+- Student edit/delete now wired: `grep -n "function saveStudentEdit\|function deleteStudent" index.html` (expect hits — if empty, Item 1 has regressed)
+- Add-session modal now storage-backed: `grep -n "function logSession" index.html` (expect a hit)
+- `saveAndClose` still toast-only for add-lesson/add-exam/add-quiz (unchanged, out of scope): `grep -n "function saveAndClose" index.html`
+- No fees feature beyond the template (unchanged, Item 3 needs an owner yes first): `grep -ni "fee\|payment\|ledger" index.html`
+- No separate attendance feature (unchanged — by design, see Item 1):
+  `grep -ci attendance index.html` (expect 0)
+- No export/backup feature yet (Item 4, unchanged): `grep -ni "export\|backup\|download" index.html` (expect 0 feature hits)
+- External requests still lines 8–10 (Item 2, unchanged): `grep -n "https://" index.html`
+- Live localStorage keys (now three, was two): `grep -n "localStorage" index.html`
+- Hardcoded counts (Item 5, unchanged — adding a student doesn't update these): `grep -n "nav-badge\|9 classes this week" index.html`
+- Persistence layer alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs` (expect `25/25 PASS`)
 
 **Maintenance:** when an item ships or is retired, change its status here
 (CANDIDATE → SETTLED/RETIRED with a one-line outcome + pointer to the

@@ -3,23 +3,27 @@ name: sailaja-os-failure-archaeology
 description: >
   Historical record of every incident (settled or open) in the Sailaja
   Teaching OS repo, mined from its full git history (7 commits, one app).
-  Load this BEFORE you: "fix" the dead persistence layer or the tweaks
-  panel; investigate why a feature that "looks shipped" doesn't work; wonder
-  why `sailaja_teaching_os_v2.html` exists or what happened to Babel; trust a
+  Load this BEFORE you: touch the persistence layer, session logging, or the
+  tweaks panel (all now live — Incidents 1 and 2 are the record of how they
+  got that way, including a scraper bug the fix's own verification caught);
+  investigate why a feature that "looks shipped" doesn't work; wonder why
+  `sailaja_teaching_os_v2.html` exists or what happened to Babel; trust a
   commit message as evidence of current behavior; or revert/redesign/delete
-  existing code. This repo has one real incident so far, but it is the same
-  shape as every incident in the sibling Family Finance OS repo's
-  archaeology — a commit message claiming a shipped feature that never once
-  executed — so read it before repeating it.
+  existing code. Two settled incidents share the same shape as every
+  incident in the sibling Family Finance OS repo's archaeology — a claim
+  (a commit message, or an assumption about "the rest of a scrape working")
+  that doesn't survive contact with a real browser — so read them before
+  repeating the pattern.
 ---
 
 # Sailaja OS Failure Archaeology
 
 The chronicle of this repo's git history, mined and verified against code at
-HEAD. **All "current code" facts verified 2026-07-21 at HEAD `9fef6e5`**
-(the app files haven't changed since 2026-07-20; only a docs commit,
-`f8e76f8`, has landed on top). Re-verify before trusting line numbers — see
-Provenance.
+HEAD. **"Current code" facts verified 2026-07-20/21**; the persistence-layer
+facts were re-verified 2026-07-21 immediately after the daily-use-campaign
+fix landed (a working-tree change at time of writing — confirm it's
+committed before trusting "SETTLED" claims blindly). Re-verify before
+trusting line numbers — see Provenance.
 
 **The single lesson of this repo so far, stated once so it doesn't need
 re-discovering: a commit message describing a feature is not evidence the
@@ -46,33 +50,36 @@ species of failure: intention committed as fact, never checked in a browser.
 - **GitHub Actions scaffolding** (`b9815ed`, `14f193a`, merged `1bdc49e`,
   2026-04-20): stock "Claude PR Assistant" / "Claude Code Review" workflow
   files, unmodified since. No incidents; not app code.
+- **The entire student-persistence layer and the tweaks-panel mount**
+  (Incident 1, SETTLED 2026-07-21) — was dead code for over two months;
+  `addNewStudent`/`initDatabase`/`renderStudents` are now real functions,
+  `teach_os_students` is written on load, the tweaks panel mounts once
+  activated. Everything catalogued as CANDIDATE gaps in
+  `sailaja-os-frontier-and-method` Item 1 (session logging, attendance,
+  student edit/delete, progress) shipped in the same fix — see
+  `sailaja-os-daily-use-campaign` for the executed phases.
+- **The level-badge scraper bug** (Incident 2, SETTLED 2026-07-21 — found
+  and fixed the same day it was introduced-by-discovery) — see below.
 
-## Open wounds — verified still true at HEAD (2026-07-21)
+## Open — verified still true at HEAD (2026-07-21)
 
-1. **The entire student-persistence layer and the tweaks-panel mount are
-   dead code** (Incident 1, below) — `addNewStudent`, `initDatabase`,
-   `renderStudents` are all `undefined` in the browser; `teach_os_students`
-   has never been written; `#tweaks-root` has 0 children.
-2. **`sailaja_teaching_os_v2.html`'s origin is undocumented** — see Incident
-   2. Not broken (it's inert, unlinked from `index.html`), but its "legacy
+1. **`sailaja_teaching_os_v2.html`'s origin is undocumented** — see Incident
+   3. Not broken (it's inert, unlinked from `index.html`), but its "legacy
    prototype" framing (`sailaja-os-change-control`) is itself an inference,
    not a sourced fact — flagged here so a future session doesn't upgrade the
    inference to a certainty by repetition.
-3. Everything catalogued as CANDIDATE gaps in `sailaja-os-frontier-and-method`
-   (session logging, attendance, student edit/delete, fees, offline-complete,
-   backup) is a consequence of #1, not a separate wound — fixing #1 is Item 1
-   there and the whole subject of `sailaja-os-daily-use-campaign`.
-
-Fixing #1 = go through `sailaja-os-change-control` + `sailaja-os-browser-verification`
-+ (because it touches `teach_os_students`'s shape) `sailaja-os-data-model-and-migrations`.
-Execution plan: `sailaja-os-daily-use-campaign`.
+2. Everything in `sailaja-os-frontier-and-method` Items 2-4 (offline-complete
+   vendoring, fees ledger, backup automation) and Item 5 (hardcoded counts,
+   lesson/exam/quiz persistence) — unaffected by the Incident 1/2 fix,
+   still genuinely not started.
 
 ---
 
-## Incident 1 — The dead database: `9fef6e5` shipped a feature it also disabled in the same diff (2026-05-12; discovered 2026-07-20)
+## Incident 1 — The dead database: `9fef6e5` shipped a feature it also disabled in the same diff (2026-05-12; discovered 2026-07-20; SETTLED 2026-07-21)
 
-**Status: OPEN.** The repo's only real bug so far, and its most instructive
-one.
+**Status: SETTLED.** Dead for over two months; fixed in one session once a
+real browser was pointed at it. The most instructive incident in this
+repo so far.
 
 **Symptom.** HEAD's commit message says "added ... dynamic localStorage".
 `index.html` visibly has an "Add Student" button, a full student database
@@ -134,16 +141,19 @@ the page (dark mode, quizzes, nav, the tweaks-panel.js half) works perfectly
 met on the first attempt because the sibling FFOS repo's method was adopted
 verbatim.
 
-**Resolution.** None yet. Fix is Item 1 of `sailaja-os-frontier-and-method`,
-executed via `sailaja-os-daily-use-campaign`: port the plain-JS functions
-(`initDatabase`, `renderStudents`, `addNewStudent`) out of the `text/babel`
-block into the live plain `<script>` (lines 1593–1786) — they don't belong
-in a JSX block and never needed to be there — while leaving `TweaksApp`
-either genuinely precompiled (a second `.jsx`→`.js` pair) or rewritten
-JSX-free, per `sailaja-os-change-control` non-negotiable #3. Do **not** fix
-by re-adding a Babel CDN — that's a new external network request against the
-owner's vendor-locally direction and was never load-bearing for the DB
-functions in the first place.
+**Resolution (2026-07-21).** Fixed exactly as the mechanism predicted: the
+plain-JS functions (`initDatabase`, `renderStudents`, `addNewStudent`, plus
+new `saveStudentEdit`/`deleteStudent`/session functions) were ported out of
+the `text/babel` block into a plain `<script>` — they never belonged in a
+JSX block and never needed to be there. `TweaksApp` was rewritten JSX-free
+(plain `React.createElement` calls) rather than given a second precompiled
+pair — simpler, and it meant the whole fix shipped with zero new build
+tooling and zero new external requests. No Babel CDN was re-added.
+Verified: `typeof addNewStudent === 'function'`, a full add student → log
+session → edit → **reload** → delete cycle survives intact
+(`sailaja-os-browser-verification`'s `verify-crud.mjs`, 25/25 PASS,
+including the same five predictions above with the first three now
+inverted and the two negatives re-confirmed).
 
 **Lesson.** A commit that touches two unrelated things (a working
 precompile + a new feature) can make the *new* thing depend on something the
@@ -155,7 +165,55 @@ encoded as house style in `sailaja-os-docs-and-commits` (small, single-purpose
 commits) and gated going forward by `sailaja-os-change-control` non-negotiable
 #1 (a browser run on `9fef6e5` at the time would have caught it same-day).
 
-## Incident 2 — `sailaja_teaching_os_v2.html`'s origin: uncertain, and worth saying so (2026-05-12)
+## Incident 2 — The level-badge scraper: a second dead-on-arrival bug, caught the moment Incident 1's fix ran for real (2026-05-12; discovered and fixed 2026-07-21)
+
+**Status: SETTLED, same day it surfaced.** Notable less for its severity
+than for being a direct, immediate demonstration of why
+`sailaja-os-browser-verification`'s non-negotiable exists: this bug had been
+sitting in the code since `9fef6e5` (2026-05-12), completely invisible,
+because it lived inside the same dead block as Incident 1 and had never
+once executed either.
+
+**Symptom.** The instant Incident 1's fix made `initDatabase()` reachable,
+the very first assertion of `verify-crud.mjs` failed: `teach_os_students`
+held **0 records**, not the 15 expected from the static seed table.
+
+**Root cause.** `initDatabase()`'s per-row scraper read the level-badge
+column with `row.querySelector('td:nth-child(3) .badge').innerText` — no
+null guard. The four A1/A2 student rows render their level as plain styled
+text ("Week 14"), not inside a `.badge` span (`index.html`, static rows
+~836 onward: `<td style="font-size:0.75rem;color:var(--french-blue);">Week
+14</td>` vs. the CBSE/Cambridge/IBDP rows' `<td><span class="badge
+badge-primary">Grade 4</span></td>`). For those four rows the selector
+returned `null`, and `.innerText` on `null` threw a `TypeError` **inside the
+`forEach` callback**, which aborted the entire loop — `localStorage.setItem`
+never ran, and the scrape produced zero records instead of "11 records,
+4 missing." A partial failure would have been easy to spot; a total,
+silent one looked exactly like Incident 1 all over again on first glance.
+
+**Evidence.** Isolated with a throwaway diagnostic script
+(`page.evaluate` walking each of the 15 rows, checking which selectors
+resolved): rows 0–10 (CBSE/Cambridge/IBDP) all had a `.badge` in column 3;
+rows 11–14 (the four A1/A2 students — Priya R., Arjun M., Meera S., Kiran
+P.) did not. `page.on('pageerror')` caught the exact exception:
+`TypeError: Cannot read properties of null (reading 'innerText')`.
+
+**Resolution.** `initDatabase()` now falls back to the cell's own text when
+no `.badge` child exists: `row.querySelector('td:nth-child(3) .badge') ||
+row.querySelector('td:nth-child(3)')`. Re-ran `verify-crud.mjs`: 15/15
+records scraped correctly on the next attempt, including all four A1/A2
+students with their real "Week N" level text.
+
+**Lesson.** A codebase that has been silently broken for two months
+(Incident 1) can be hiding MORE than one bug behind the same silence — don't
+declare victory the moment the first symptom's mechanism is understood; run
+the fix for real and let the verification script itself go looking. This is
+also a second, independent instance of
+`sailaja-os-data-model-and-migrations`'s general fragility warning ("one
+missing selector aborts the entire seed") going from a documented risk to
+an actually-observed failure — the risk was real, not theoretical.
+
+## Incident 3 — `sailaja_teaching_os_v2.html`'s origin: uncertain, and worth saying so (2026-05-12)
 
 **Status: settled as "uncertain" — do not upgrade to a firmer story without
 new evidence.**
@@ -203,46 +261,58 @@ evidence ran out, the entry says 'uncertain'").
 
 ## When NOT to use this skill
 
-- **Live triage of a bug happening right now** — this repo has no dedicated
-  debugging-playbook skill yet; for the one known live bug, jump straight to
-  Incident 1 above and `sailaja-os-browser-verification`'s Recorded outputs.
+- **Live triage of a NEW bug happening right now** — this repo has no
+  dedicated debugging-playbook skill yet; if it resembles Incidents 1 or 2
+  (something "looks shipped" but a function is undefined, or a scrape/parse
+  silently returns fewer records than expected), read those first before
+  assuming it's novel — but if the persistence layer's own founding-defect
+  checks are clean (`verify-crud.mjs` green), it's a genuinely new bug, not
+  a regression of either.
 - **How to make/commit a change safely** → `sailaja-os-change-control`,
   `sailaja-os-docs-and-commits`.
 - **Current architecture rules and invariants** →
   `sailaja-os-architecture-contract`.
-- **Schema, `teach_os_students`/`sailaja-dark`, migration mechanics** →
-  `sailaja-os-data-model-and-migrations`.
+- **Schema, `teach_os_students`/`teach_os_sessions`/`sailaja-dark`,
+  migration mechanics** → `sailaja-os-data-model-and-migrations`.
 - **Running Playwright / what counts as verification evidence** →
   `sailaja-os-browser-verification`.
-- **The roadmap this incident feeds into, and the research method that
+- **The roadmap these incidents feed into, and the research method that
   produced the evidence above** → `sailaja-os-frontier-and-method`.
-- **The phased plan to actually fix Incident 1** →
-  `sailaja-os-daily-use-campaign`.
+- **The phased plan that fixed Incidents 1 and 2, and what's still open**
+  → `sailaja-os-daily-use-campaign`.
 
 ## Provenance and maintenance
 
 Everything above comes from `git log --all --format='%h %ai %s'` (7 commits
-+ 2 merges + this skill library's own commit `f8e76f8`), `git show --stat`
-and `git diff` on each app-touching commit, and a live Playwright run against
-HEAD `9fef6e5`, all performed 2026-07-21. No narrative was invented; Incident
-2 says "uncertain" precisely where the trail ran out. Re-mine with:
++ 2 merges + this skill library's own commits), `git show --stat` and
+`git diff` on each app-touching commit, and live Playwright runs against
+HEAD `9fef6e5` — Incident 1's original diagnosis and Incident 2's discovery
+both performed 2026-07-21, in the same session, minutes apart (Incident 2
+was found BY the verification script written to confirm Incident 1's fix).
+No narrative was invented; Incident 3 still says "uncertain" precisely
+where its trail ran out — that entry is unaffected by the persistence fix.
+Re-mine with:
 
-- Full dated map: `git log --all --format='%h %ai %s'` (only 8 commits as of
+- Full dated map: `git log --all --format='%h %ai %s'` (only 9 commits as of
   this writing — read all of them, this repo is small enough to).
 - New incidents since this was written: `git log --oneline --since=2026-07-21`.
-- Re-confirm Incident 1's mechanism: run
-  `node .claude/skills/sailaja-os-browser-verification/scripts/smoke.mjs`
-  (see that skill's Provenance) — `11/11 PASS` including the three
-  founding-defect checks means this incident's "OPEN" status still holds.
+- Re-confirm Incidents 1 and 2 are still fixed: run
+  `node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs`
+  (see that skill's Provenance) — `25/25 PASS` means both hold; a scraped
+  count other than 15, or `addNewStudent` back to `'undefined'`, means one of
+  them regressed.
 - Re-check the exact diff behind Incident 1:
   `git diff 3c98fac 9fef6e5 -- index.html`.
-- Re-check Incident 2's diff-size evidence:
+- Re-check Incident 2's fix is present: `grep -n "levelEl = row.querySelector" index.html`.
+- Re-check Incident 3's diff-size evidence:
   `git show 3c98fac:index.html | diff - sailaja_teaching_os_v2.html | wc -l`.
-- Script tag inventory (should show exactly one `<script type="text/babel">`
-  until the campaign lands): `grep -n '<script' index.html`.
-- When Incident 1 is fixed, move it to "Settled" with a pointer to the
-  campaign's completion, and update every skill that currently describes the
-  DB layer as "designed but not live" (`sailaja-os-data-model-and-migrations`
-  §0, `sailaja-os-change-control` §2, `sailaja-os-frontier-and-method` Item 1)
-  in the same change-controlled commit — they will all be simultaneously
-  stale the moment `typeof addNewStudent` stops being `'undefined'`.
+- Script tag inventory (should show exactly zero live
+  `<script type="text/babel">` tags, only historical comments mentioning
+  one): `grep -n '<script\|text/babel' index.html`.
+- If Incidents 1 or 2 ever regress, flip their status back to OPEN here and
+  re-check every skill that currently describes the persistence layer as
+  live (`sailaja-os-data-model-and-migrations` §0,
+  `sailaja-os-change-control` §2, `sailaja-os-architecture-contract` W1-W3,
+  `sailaja-os-frontier-and-method` Item 1, `sailaja-os-daily-use-campaign`
+  phase statuses) — they will all be simultaneously wrong the instant
+  `typeof addNewStudent` goes back to `'undefined'`.

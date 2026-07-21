@@ -1487,24 +1487,24 @@ Sailaja</div>
     <div class="modal-sub">Record what was covered in today's class.</div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Student</label>
-        <select class="form-control"><option>Aarav T. — CBSE Gr 4</option><option>Diya R. — CBSE Gr 7</option><option>Rohan K. — CBSE Gr 10</option><option>Neha P. — CBSE Gr 9</option><option>Kabir S. — CBSE Gr 12</option><option>Sara M. — Cambridge Gr 5</option><option>Ananya S. — Cambridge Gr 8</option><option>Ravi C. — Cambridge Gr 7</option><option>Layla H. — IGCSE Gr 10</option><option>Ishaan M. — IBDP SL</option><option>Zara F. — IBDP HL</option><option>Priya R. — A1</option><option>Arjun M. — A1</option><option>Meera S. — A1→A2</option><option>Kiran P. — A1</option></select>
+        <select id="session-student" class="form-control"><option value="">Select student…</option></select>
       </div>
-      <div class="form-group"><label class="form-label">Date</label><input class="form-control" type="date"></div>
+      <div class="form-group"><label class="form-label">Date</label><input id="session-date" class="form-control" type="date"></div>
     </div>
-    <div class="form-group"><label class="form-label">Topic Covered</label><input class="form-control" type="text" placeholder="e.g. Passé composé — irregular verbs"></div>
+    <div class="form-group"><label class="form-label">Topic Covered</label><input id="session-topic" class="form-control" type="text" placeholder="e.g. Passé composé — irregular verbs"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Performance</label>
-        <select class="form-control"><option>Excellent</option><option>Good — on track</option><option>Needs more practice</option><option>Struggling — needs attention</option></select>
+        <select id="session-performance" class="form-control"><option>Excellent</option><option>Good — on track</option><option>Needs more practice</option><option>Struggling — needs attention</option></select>
       </div>
-      <div class="form-group"><label class="form-label">Homework Given</label><input class="form-control" type="text" placeholder="e.g. Exercises p.34–35"></div>
+      <div class="form-group"><label class="form-label">Homework Given</label><input id="session-homework" class="form-control" type="text" placeholder="e.g. Exercises p.34–35"></div>
     </div>
-    <div class="form-group"><label class="form-label">Session Notes</label><textarea class="form-control" placeholder="Key observations, what to revisit, next session plan..."></textarea></div>
+    <div class="form-group"><label class="form-label">Session Notes</label><textarea id="session-notes" class="form-control" placeholder="Key observations, what to revisit, next session plan..."></textarea></div>
     <div class="form-group"><label class="form-label">Parent Update?</label>
-      <select class="form-control"><option>No — routine class</option><option>Yes — send progress note</option><option>Yes — flag concern</option><option>Yes — exam reminder</option></select>
+      <select id="session-parent-update" class="form-control"><option>No — routine class</option><option>Yes — send progress note</option><option>Yes — flag concern</option><option>Yes — exam reminder</option></select>
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-session')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAndClose('add-session','Session logged!')">Save Session</button>
+      <button class="btn btn-primary" onclick="logSession()">Save Session</button>
     </div>
   </div>
 </div>
@@ -1574,15 +1574,32 @@ Sailaja</div>
   </div>
 </div>
 
-<!-- View Student (placeholder) -->
+<!-- View Student -->
 <div class="modal-bg" id="modal-view-student">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('view-student')">✕</button>
     <div class="modal-title">Student Profile</div>
-    <div class="modal-sub">Click any row in the student table to view full details. Replace with actual data when setting up the real database.</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Student Name</label><input id="vs-name" class="form-control" type="text"></div>
+      <div class="form-group"><label class="form-label">Progress</label><input id="vs-progress" class="form-control" type="text" placeholder="e.g. 55%"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Curriculum</label>
+        <select id="vs-curr" class="form-control"><option>A1/A2 Language Tuition</option><option>CBSE</option><option>Cambridge Primary (Gr 3–5)</option><option>Cambridge Lower Secondary (Gr 6–8)</option><option>Cambridge IGCSE (Gr 9–10)</option><option>IBDP SL</option><option>IBDP HL</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Level</label><input id="vs-level" class="form-control" type="text" placeholder="e.g. Grade 10 / A1 Week 1"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Schedule</label><input id="vs-schedule" class="form-control" type="text" placeholder="e.g. Tue · 4:00 PM"></div>
+    <div class="form-group"><label class="form-label">Parent Name & WhatsApp</label><input id="vs-parent" class="form-control" type="text"></div>
+    <div class="form-group"><label class="form-label">Focus / Notes</label><textarea id="vs-focus" class="form-control"></textarea></div>
+    <div class="form-group"><label class="form-label">Recent Sessions</label>
+      <ul id="vs-sessions" style="list-style:none;padding:0;margin:0;font-size:13px;color:var(--ink2);max-height:120px;overflow-y:auto;"></ul>
+    </div>
     <div class="form-actions">
+      <button class="btn btn-ghost" onclick="deleteStudent()">Delete</button>
       <button class="btn btn-ghost" onclick="closeModal('view-student')">Close</button>
-      <button class="btn btn-primary" onclick="closeModal('view-student');openModal('add-session')">Log Session →</button>
+      <button class="btn btn-ghost" onclick="closeModal('view-student');openSessionModalFor(currentViewStudentId)">Log Session →</button>
+      <button class="btn btn-primary" onclick="saveStudentEdit()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -1786,7 +1803,7 @@ function copyTemplate(id) {
 </script>
 
 <div id="tweaks-root"></div>
-<script type="text/babel">
+<script>
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accentColor": "#1a3a6b",
   "bgTone": "warm",
@@ -1796,6 +1813,13 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "compactSessions": false,
   "teacherName": "Sailaja"
 }/*EDITMODE-END*/;
+
+// JSX-free by design (sailaja-os-change-control non-negotiable #3): this repo
+// ships no Babel runtime, so this component is written as plain
+// React.createElement calls. It is the direct fix for
+// sailaja-os-failure-archaeology Incident 1 — the previous <script
+// type="text/babel"> version of this exact component never executed.
+const h = React.createElement;
 
 function TweaksApp() {
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
@@ -1846,25 +1870,23 @@ function TweaksApp() {
     updateGreeting(tweaks.teacherName);
   }, [tweaks.teacherName]);
 
-  return (
-    <TweaksPanel>
-      <TweakSection label="Appearance">
-        <TweakColor id="accentColor" label="Brand / accent colour" value={tweaks.accentColor} onChange={v => setTweak('accentColor', v)} />
-        <TweakRadio id="bgTone" label="Background tone" value={tweaks.bgTone} onChange={v => setTweak('bgTone', v)}
-          options={[{value:'warm',label:'Warm'},{value:'cool',label:'Cool'},{value:'neutral',label:'Neutral'}]} />
-        <TweakSlider id="sidebarWidth" label="Sidebar width" value={tweaks.sidebarWidth} min={180} max={280} step={4} onChange={v => setTweak('sidebarWidth', v)} />
-      </TweakSection>
-      <TweakSection label="Student Table">
-        <TweakToggle id="showParentContact" label="Show parent contact" value={tweaks.showParentContact} onChange={v => setTweak('showParentContact', v)} />
-        <TweakToggle id="showProgressPct" label="Show progress %" value={tweaks.showProgressPct} onChange={v => setTweak('showProgressPct', v)} />
-      </TweakSection>
-      <TweakSection label="Layout">
-        <TweakToggle id="compactSessions" label="Compact session list" value={tweaks.compactSessions} onChange={v => setTweak('compactSessions', v)} />
-      </TweakSection>
-      <TweakSection label="Personalisation">
-        <TweakText id="teacherName" label="Teacher name (dashboard greeting)" value={tweaks.teacherName} onChange={v => setTweak('teacherName', v)} />
-      </TweakSection>
-    </TweaksPanel>
+  return h(TweaksPanel, null,
+    h(TweakSection, { label: 'Appearance' },
+      h(TweakColor, { id: 'accentColor', label: 'Brand / accent colour', value: tweaks.accentColor, onChange: v => setTweak('accentColor', v) }),
+      h(TweakRadio, { id: 'bgTone', label: 'Background tone', value: tweaks.bgTone, onChange: v => setTweak('bgTone', v),
+        options: [{value:'warm',label:'Warm'},{value:'cool',label:'Cool'},{value:'neutral',label:'Neutral'}] }),
+      h(TweakSlider, { id: 'sidebarWidth', label: 'Sidebar width', value: tweaks.sidebarWidth, min: 180, max: 280, step: 4, onChange: v => setTweak('sidebarWidth', v) })
+    ),
+    h(TweakSection, { label: 'Student Table' },
+      h(TweakToggle, { id: 'showParentContact', label: 'Show parent contact', value: tweaks.showParentContact, onChange: v => setTweak('showParentContact', v) }),
+      h(TweakToggle, { id: 'showProgressPct', label: 'Show progress %', value: tweaks.showProgressPct, onChange: v => setTweak('showProgressPct', v) })
+    ),
+    h(TweakSection, { label: 'Layout' },
+      h(TweakToggle, { id: 'compactSessions', label: 'Compact session list', value: tweaks.compactSessions, onChange: v => setTweak('compactSessions', v) })
+    ),
+    h(TweakSection, { label: 'Personalisation' },
+      h(TweakText, { id: 'teacherName', label: 'Teacher name (dashboard greeting)', value: tweaks.teacherName, onChange: v => setTweak('teacherName', v) })
+    )
   );
 }
 
@@ -1874,12 +1896,79 @@ function mountTweaks() {
     setTimeout(mountTweaks, 50);
     return;
   }
-  ReactDOM.createRoot(el).render(<TweaksApp />);
+  ReactDOM.createRoot(el).render(h(TweaksApp));
 }
 mountTweaks();
 
-// --- LOCAL DATABASE LOGIC ---
+// ── LOCAL DATABASE — sailaja-os-daily-use-campaign Phase 1/2.
+// Schema (sailaja-os-data-model-and-migrations §1, updated): DB_KEY stays a
+// bare array (it was never written before this fix — no migration needed,
+// see the campaign skill's Phase 1). SESSIONS_KEY is new: a session record
+// with studentId + date IS the attendance record, by design — no separate
+// attendance feature.
 const DB_KEY = 'teach_os_students';
+const SESSIONS_KEY = 'teach_os_sessions';
+let currentViewStudentId = null;
+
+// Escapes text before innerHTML interpolation — fixes the stored-XSS-shaped
+// defect in the original renderStudents() (sailaja-os-architecture-contract
+// W2).
+function esc(str) {
+  return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// Monotonic integer ids (max existing id + 1) — replaces the original's
+// inconsistent Date.now() / Date.now()+Math.random() generators, which
+// produced float ids that lose precision on JSON round-trip and can collide
+// when initDatabase() creates many records in the same millisecond.
+function nextId(records) {
+  return records.reduce((m, r) => Math.max(m, r.id || 0), 0) + 1;
+}
+
+// Grade number → filter band, for curricula whose select value doesn't
+// already encode a band (CBSE has no per-grade option; Cambridge/IBDP do).
+function bandFromGradeText(text) {
+  const m = /(\d{1,2})/.exec(text || '');
+  if (!m) return null;
+  const g = parseInt(m[1], 10);
+  if (g >= 3 && g <= 5) return 'primary';
+  if (g >= 6 && g <= 8) return 'middle';
+  if (g >= 9 && g <= 10) return 'secondary';
+  if (g >= 11 && g <= 12) return 'senior';
+  return null;
+}
+
+// Derives the three redundant curriculum fields (currBadge, curr, band) from
+// one curriculum <select> value + the free-text level/grade field — used by
+// both addNewStudent() and saveStudentEdit() so the two writers can't drift.
+function deriveCurrBand(currSelectValue, levelText) {
+  const label = (currSelectValue || '').trim();
+  const lower = label.toLowerCase();
+  const currBadge = label.split(' ')[0] || 'A1/A2';
+  if (lower.startsWith('cbse')) return { currBadge, curr: 'cbse', band: bandFromGradeText(levelText) || 'primary' };
+  if (lower.includes('cambridge primary')) return { currBadge, curr: 'cambridge', band: 'primary' };
+  if (lower.includes('cambridge lower secondary')) return { currBadge, curr: 'cambridge', band: 'middle' };
+  if (lower.includes('cambridge igcse')) return { currBadge, curr: 'cambridge', band: 'secondary' };
+  if (lower.startsWith('cambridge')) return { currBadge, curr: 'cambridge', band: bandFromGradeText(levelText) || 'primary' };
+  if (lower.startsWith('ibdp')) return { currBadge, curr: 'ibdp', band: 'senior' };
+  return { currBadge, curr: 'a1', band: 'a1' };
+}
+
+// Reverse of the curriculum <select> truncation (deriveCurrBand keeps only
+// the first word as currBadge) — picks the exact <option> text to preselect
+// when editing an existing student.
+function fullCurrLabel(s) {
+  if (s.curr === 'cbse') return 'CBSE';
+  if (s.curr === 'ibdp') return /hl/i.test(s.levelBadge || '') ? 'IBDP HL' : 'IBDP SL';
+  if (s.curr === 'cambridge') {
+    if (s.band === 'primary') return 'Cambridge Primary (Gr 3–5)';
+    if (s.band === 'middle') return 'Cambridge Lower Secondary (Gr 6–8)';
+    return 'Cambridge IGCSE (Gr 9–10)';
+  }
+  return 'A1/A2 Language Tuition';
+}
 
 function initDatabase() {
   if (!localStorage.getItem(DB_KEY)) {
@@ -1887,18 +1976,29 @@ function initDatabase() {
     if (!tbody) return;
     const rows = tbody.querySelectorAll('tr');
     const students = [];
-    rows.forEach(row => {
+    rows.forEach((row, i) => {
       const nameEl = row.querySelector('.student-name');
       if (!nameEl) return;
       const name = nameEl.innerText;
       const parent = row.querySelector('.student-parent').innerText;
       const currBadge = row.querySelector('td:nth-child(2) .badge').innerText;
-      const levelBadge = row.querySelector('td:nth-child(3) .badge').innerText;
+      // A1/A2 rows show the level as plain styled text, not a .badge span
+      // (e.g. "Week 14") -- fall back to the cell itself. Without this,
+      // initDatabase() throws on the first A1/A2 row and the scrape never
+      // completes (sailaja-os-data-model-and-migrations §2.2's documented
+      // fragility, confirmed live 2026-07-21 by this exact fix).
+      const levelEl = row.querySelector('td:nth-child(3) .badge') || row.querySelector('td:nth-child(3)');
+      const levelBadge = levelEl ? levelEl.innerText : 'Grade N/A';
       const focus = row.querySelector('td:nth-child(4)').innerText;
       const schedule = row.querySelector('td:nth-child(5)').innerText;
       const progress = row.querySelector('.mini-pct').innerText;
-      
-      students.push({ id: Date.now() + Math.random(), name, parent, currBadge, levelBadge, focus, schedule, progress });
+      // Static rows already carry the correct data-curr/data-band — read
+      // them directly instead of re-deriving (the original hardcoded
+      // data-band="primary" in the dynamic render; this is that fix).
+      students.push({
+        id: i + 1, name, parent, currBadge, levelBadge, focus, schedule, progress,
+        curr: row.dataset.curr || 'a1', band: row.dataset.band || 'a1',
+      });
     });
     localStorage.setItem(DB_KEY, JSON.stringify(students));
   }
@@ -1909,78 +2009,193 @@ function renderStudents() {
   if (!tbody) return;
   const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
   tbody.innerHTML = '';
-  
+
   students.forEach(s => {
-    let currAttr = 'a1';
-    let badgeClass = 'badge-primary';
+    let badgeClass = 'badge-a1';
     let progressClass = 'french-blue';
-    const currLower = s.currBadge.toLowerCase();
-    
-    if (currLower.includes('cbse')) { currAttr = 'cbse'; progressClass = 'cbse'; badgeClass = 'badge-cbse'; }
-    else if (currLower.includes('cambridge')) { currAttr = 'cambridge'; progressClass = 'cambridge'; badgeClass = 'badge-cam'; }
-    else if (currLower.includes('ibdp')) { currAttr = 'ibdp'; progressClass = 'ibdp'; badgeClass = 'badge-ibdp'; }
-    else { badgeClass = 'badge-a1'; }
-    
-    let progressVal = parseInt(s.progress) || 0;
-    
+    if (s.curr === 'cbse') { progressClass = 'cbse'; badgeClass = 'badge-cbse'; }
+    else if (s.curr === 'cambridge') { progressClass = 'cambridge'; badgeClass = 'badge-cam'; }
+    else if (s.curr === 'ibdp') { progressClass = 'ibdp'; badgeClass = 'badge-ibdp'; }
+
+    const progressVal = parseInt(s.progress) || 0;
+
     const tr = document.createElement('tr');
-    tr.setAttribute('data-curr', currAttr);
-    tr.setAttribute('data-band', 'primary'); 
-    tr.onclick = () => openModal('view-student');
-    
+    tr.dataset.curr = s.curr || 'a1';
+    tr.dataset.band = s.band || 'a1';
+    tr.dataset.id = s.id;
+    tr.onclick = () => viewStudent(s.id);
+
     tr.innerHTML = `
-      <td><span class="student-name">${s.name}</span><span class="student-parent">${s.parent}</span></td>
-      <td><span class="badge ${badgeClass}">${s.currBadge}</span></td>
-      <td><span class="badge badge-primary">${s.levelBadge}</span></td>
-      <td>${s.focus}</td>
-      <td>${s.schedule}</td>
+      <td><span class="student-name">${esc(s.name)}</span><span class="student-parent">${esc(s.parent)}</span></td>
+      <td><span class="badge ${badgeClass}">${esc(s.currBadge)}</span></td>
+      <td><span class="badge badge-primary">${esc(s.levelBadge)}</span></td>
+      <td>${esc(s.focus)}</td>
+      <td>${esc(s.schedule)}</td>
       <td><div class="mini-prog"><div class="mini-track"><div class="mini-fill" style="width:${progressVal}%;background:var(--${progressClass})"></div></div><span class="mini-pct">${progressVal}%</span></div></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('add-session')">Log</button></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openSessionModalFor(${s.id})">Log</button></td>
     `;
     tbody.appendChild(tr);
   });
 }
 
 function addNewStudent() {
-  const name = document.getElementById('new-student-name').value;
+  const name = document.getElementById('new-student-name').value.trim();
   if (!name) return alert('Please enter a student name.');
-  
-  const curr = document.getElementById('new-student-curr').value;
+
+  const currSelect = document.getElementById('new-student-curr').value;
   const level = document.getElementById('new-student-level').value || 'Grade N/A';
   const day = document.getElementById('new-student-day').value;
   const time = document.getElementById('new-student-time').value;
   const parent = document.getElementById('new-student-parent').value || 'Parent Info N/A';
   const focus = document.getElementById('new-student-focus').value || 'General';
-  
-  const newStudent = {
-    id: Date.now(),
-    name: name,
-    parent: parent,
-    currBadge: curr.split(' ')[0],
-    levelBadge: level,
-    focus: focus,
-    schedule: day.substring(0,3) + ' · ' + time,
-    progress: '0%'
-  };
-  
+  const { currBadge, curr, band } = deriveCurrBand(currSelect, level);
+
   const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  const newStudent = {
+    id: nextId(students), name, parent, currBadge, levelBadge: level, focus,
+    schedule: day.substring(0,3) + ' · ' + time, progress: '0%', curr, band,
+  };
+
   students.unshift(newStudent);
   localStorage.setItem(DB_KEY, JSON.stringify(students));
-  
+
   renderStudents();
-  
+  populateSessionStudentSelect();
+
   document.getElementById('new-student-name').value = '';
   document.getElementById('new-student-level').value = '';
   document.getElementById('new-student-time').value = '';
   document.getElementById('new-student-parent').value = '';
   document.getElementById('new-student-focus').value = '';
-  
+
   saveAndClose('add-student', 'Student added successfully!');
+}
+
+function viewStudent(id) {
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  const s = students.find(x => x.id === id);
+  if (!s) return;
+  currentViewStudentId = id;
+  document.getElementById('vs-name').value = s.name;
+  document.getElementById('vs-curr').value = fullCurrLabel(s);
+  document.getElementById('vs-level').value = s.levelBadge;
+  document.getElementById('vs-schedule').value = s.schedule;
+  document.getElementById('vs-progress').value = s.progress;
+  document.getElementById('vs-parent').value = s.parent;
+  document.getElementById('vs-focus').value = s.focus;
+  renderViewStudentSessions(id);
+  openModal('view-student');
+}
+
+function saveStudentEdit() {
+  if (currentViewStudentId == null) return;
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  const idx = students.findIndex(x => x.id === currentViewStudentId);
+  if (idx === -1) return;
+
+  const name = document.getElementById('vs-name').value.trim();
+  if (!name) return alert('Please enter a student name.');
+  const level = document.getElementById('vs-level').value || 'Grade N/A';
+  const { currBadge, curr, band } = deriveCurrBand(document.getElementById('vs-curr').value, level);
+
+  students[idx] = {
+    ...students[idx],
+    name, currBadge, curr, band, levelBadge: level,
+    schedule: document.getElementById('vs-schedule').value || students[idx].schedule,
+    progress: document.getElementById('vs-progress').value || students[idx].progress,
+    parent: document.getElementById('vs-parent').value || 'Parent Info N/A',
+    focus: document.getElementById('vs-focus').value || 'General',
+  };
+
+  localStorage.setItem(DB_KEY, JSON.stringify(students));
+  renderStudents();
+  populateSessionStudentSelect();
+  closeModal('view-student');
+  showToast('✓ Student updated!');
+}
+
+function deleteStudent() {
+  if (currentViewStudentId == null) return;
+  if (!confirm('Delete this student? This also removes their logged sessions. This cannot be undone.')) return;
+  const id = currentViewStudentId;
+
+  let students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  students = students.filter(x => x.id !== id);
+  localStorage.setItem(DB_KEY, JSON.stringify(students));
+
+  let sessions = JSON.parse(localStorage.getItem(SESSIONS_KEY)) || [];
+  sessions = sessions.filter(x => x.studentId !== id);
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+
+  currentViewStudentId = null;
+  renderStudents();
+  populateSessionStudentSelect();
+  closeModal('view-student');
+  showToast('✓ Student deleted.');
+}
+
+// ── Sessions (also serves as attendance — sailaja-os-frontier-and-method
+// Item 1 explicitly rules out a separate attendance feature).
+
+function populateSessionStudentSelect(preselectId) {
+  const sel = document.getElementById('session-student');
+  if (!sel) return;
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  sel.innerHTML = '<option value="">Select student…</option>' +
+    students.map(s => `<option value="${s.id}">${esc(s.name)} — ${esc(s.currBadge)} ${esc(s.levelBadge)}</option>`).join('');
+  if (preselectId != null) sel.value = String(preselectId);
+}
+
+function openSessionModalFor(id) {
+  populateSessionStudentSelect(id);
+  openModal('add-session');
+}
+
+function getSessionsForStudent(id) {
+  const sessions = JSON.parse(localStorage.getItem(SESSIONS_KEY)) || [];
+  return sessions.filter(s => s.studentId === id).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
+function renderViewStudentSessions(id) {
+  const list = document.getElementById('vs-sessions');
+  if (!list) return;
+  const sessions = getSessionsForStudent(id);
+  list.innerHTML = sessions.length
+    ? sessions.map(s => `<li>${esc(s.date)} — ${esc(s.topic || 'Session')}</li>`).join('')
+    : '<li>No sessions logged yet.</li>';
+}
+
+function logSession() {
+  const studentId = parseInt(document.getElementById('session-student').value, 10);
+  const date = document.getElementById('session-date').value;
+  if (!studentId) return alert('Please select a student.');
+  if (!date) return alert('Please pick a date.');
+
+  const sessions = JSON.parse(localStorage.getItem(SESSIONS_KEY)) || [];
+  sessions.push({
+    id: nextId(sessions), studentId, date,
+    topic: document.getElementById('session-topic').value,
+    performance: document.getElementById('session-performance').value,
+    homework: document.getElementById('session-homework').value,
+    notes: document.getElementById('session-notes').value,
+    parentUpdate: document.getElementById('session-parent-update').value,
+  });
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+
+  if (currentViewStudentId === studentId) renderViewStudentSessions(studentId);
+
+  document.getElementById('session-topic').value = '';
+  document.getElementById('session-date').value = '';
+  document.getElementById('session-homework').value = '';
+  document.getElementById('session-notes').value = '';
+
+  saveAndClose('add-session', 'Session logged!');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initDatabase();
   renderStudents();
+  populateSessionStudentSelect();
 });
 </script>
 </body>

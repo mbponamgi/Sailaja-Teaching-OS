@@ -8,9 +8,9 @@ description: >
   campaign's persistence work; or whenever "how do I test this" comes up.
   Encodes the house rule (non-negotiable #1 in sailaja-os-change-control): no
   change ships on "looks right" alone — serve the app locally, drive the real
-  UI with headless Playwright, and print PASS/FAIL evidence. Ships two working
-  scripts (smoke test, store dumper/seeder) plus the shared plumbing they
-  both use.
+  UI with headless Playwright, and print PASS/FAIL evidence. Ships three
+  working scripts (smoke test, store dumper/seeder, full CRUD-and-reload
+  regression) plus the shared plumbing they all use.
 ---
 
 # Sailaja OS Browser Verification
@@ -28,7 +28,12 @@ is the *schema* of what you're seeding.
 over two months — full incident: `sailaja-os-change-control` §1,
 `sailaja-os-failure-archaeology` Incident 1. A screenshot or "the diff is
 obviously correct" would not have caught it; a script asserting
-`typeof addNewStudent === 'function'` would have, instantly.
+`typeof addNewStudent === 'function'` would have, instantly. **This is not
+hypothetical**: the same discipline caught a second, independent bug the
+moment the fix landed (2026-07-21) — `initDatabase()`'s scraper threw on the
+first A1/A2 row (no `.badge` span on that column) and silently produced zero
+records; `verify-crud.mjs`'s very first assertion failed and pointed straight
+at it (`sailaja-os-failure-archaeology` Incident 2).
 
 ## Quick start
 
@@ -44,13 +49,18 @@ export PW_PATH=/Users/mponamgi/Documents/Personal-finance-tracker/node_modules
 # 1. Prove the app boots clean (run after ANY change, before anything else):
 node .claude/skills/sailaja-os-browser-verification/scripts/smoke.mjs
 
-# 2. Inspect or seed the persistent test-profile store (no app JS runs):
+# 2. After any change touching students/sessions, run the full CRUD+reload
+#    regression (the daily-use-campaign's stated success metric, executable):
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs
+
+# 3. Inspect or seed the persistent test-profile store (no app JS runs):
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs /path/to/seed.json
 
-# 3. For a new behavior change, copy smoke.mjs's structure into a throwaway
-#    verify-<change>.mjs (scratch dir, never committed) and adapt the
-#    DRIVE/ASSERT section — see "Writing a new verify script" below.
+# 4. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
+#    structure into a throwaway verify-<change>.mjs (scratch dir, never
+#    committed) and adapt the DRIVE/ASSERT section — see "Writing a new
+#    verify script" below.
 ```
 
 Scripts are `.mjs` (this repo has no `"type": "module"` package.json to force
@@ -89,11 +99,15 @@ Same standard as the sibling FFOS repo (`ffos-browser-verification`), adapted:
 | Script | What it does | When to run |
 |---|---|---|
 | `lib.mjs` | Shared plumbing: Playwright resolution (`PW_PATH` fallback), canonical server (port 8931, fail-fast if busy), PASS/FAIL checker, console/page error collectors, the persistent test-profile dir, `DB_KEY`/`DARK_KEY` constants | Imported by every other script — not run directly |
-| `smoke.mjs` | Boots the app in a **throwaway** context, asserts sidebar renders, dashboard is the default active page, the 15 static student rows exist, `toggleDark()` flips `sailaja-dark`, zero console/page errors/failed requests — **and** the three founding-defect predictions (`addNewStudent` undefined, `teach_os_students` never written, `#tweaks-root` has 0 children) plus one negative control (`tweaks-panel.js` globals DO load) | After every change; the minimum bar. Also doubles as this repo's dead-script regression check — if these three predictions ever flip to the opposite values *without* the daily-use-campaign fix having landed, something else changed and needs investigating before you trust anything else |
+| `smoke.mjs` | Boots the app in a **throwaway** context, asserts sidebar renders, dashboard is the default active page, `initDatabase()` scrapes exactly 15 students, `addNewStudent` is a real function, `teach_os_students` is written, the tweaks panel renders once activated via `postMessage`, `toggleDark()` flips `sailaja-dark`, zero console/page errors/failed requests | After every change; the minimum bar |
+| `verify-crud.mjs` | The daily-use-campaign's stated success metric, executable: add a student via the real form → log a session for them via the row's "Log" button → edit their name via the profile modal → **reload the page** → delete them (cascade-removes their session). Asserts exact counts and field values at every step, including post-reload. Negative controls: dark mode, `filterStudents`, zero console/page errors throughout | After any change touching students, sessions, or the view-student/add-session modals — this is the one that actually proves persistence, not just that a function exists |
 | `dump-store.mjs` | Uses a **persistent** test-profile context (survives across separate runs) to read, and optionally seed, `teach_os_students` — navigates to a same-origin 404 page (`NO_APP_URL`) so **zero app script runs**, meaning it never triggers `initDatabase()`'s one-shot first-run scrape | Inspecting the store shape; seeding old- or new-shape data for a migration test; preparing fixture state before a behavior-change verify script drives the real UI |
 
-Both scripts were run for real while authoring this skill (2026-07-21, HEAD
-`9fef6e5`, server on :8931) — recorded output below.
+All three were run for real (`smoke.mjs`/`dump-store.mjs` authored
+2026-07-21 against the then-dead persistence layer; `verify-crud.mjs`
+authored the same day immediately after the daily-use-campaign Phase 1-3 fix
+landed, and both smoke.mjs and dump-store.mjs's assertions were updated to
+match) — recorded output below.
 
 ## Writing a new verify script
 
@@ -125,9 +139,12 @@ Both scripts were run for real while authoring this skill (2026-07-21, HEAD
 | Pages | `page.locator('#page-<id>.active')` — ids: dashboard (default), students, a1a2, cbse, cambridge, ibdp, lessons, schedule, exams, quizzes, comms, resources; switched via `onclick="showPage('<id>')"` nav buttons |
 | Modals | `openModal('<id>')` / `closeModal('<id>')`; ids include `add-student`, `add-session`, `view-student`, `add-lesson`, `add-exam`, `add-quiz`; open modal is `.modal-bg#modal-<id>` becoming visible |
 | Dark mode | `toggleDark()` (global fn); flag in `localStorage['sailaja-dark']`, `'1'`/`'0'` |
-| Add-student form (has real `id`s since `9fef6e5`, still unwired) | `#new-student-name`, `#new-student-curr`, `#new-student-level`, `#new-student-day`, `#new-student-time`, `#new-student-parent`, `#new-student-focus`; Save button calls `addNewStudent()` — throws today (dead block) |
-| Add-session / add-lesson / add-exam / add-quiz forms | No `id`s on inputs; Save buttons call `saveAndClose('<modal-id>', '<toast message>')`, which only closes the modal and shows a toast — no storage write exists yet |
-| Student table rows | `#students-table tbody tr` — 15 static rows pre-campaign; row click opens `view-student` modal (currently a static placeholder, no per-row data) |
+| Add-student form | `#new-student-name`, `#new-student-curr`, `#new-student-level`, `#new-student-day`, `#new-student-time`, `#new-student-parent`, `#new-student-focus`; Save button calls `addNewStudent()` — live since the daily-use-campaign fix |
+| Add-session form | `#session-student` (dynamically populated, value = student id), `#session-date`, `#session-topic`, `#session-performance`, `#session-homework`, `#session-notes`, `#session-parent-update`; Save calls `logSession()`. Open via a row's "Log" button (`openSessionModalFor(id)`, preselects that student) or any generic "+ Log Session" button (`openModal('add-session')`, no preselection) |
+| View/edit/delete student | `#vs-name`, `#vs-curr`, `#vs-level`, `#vs-schedule`, `#vs-progress`, `#vs-parent`, `#vs-focus`, `#vs-sessions` (read-only recent-sessions list); Save calls `saveStudentEdit()`, Delete calls `deleteStudent()` (fires a native `confirm()` — register `page.on('dialog', d => d.accept())` before triggering it) |
+| Student table rows | `#students-table tbody tr[data-id="<id>"]` — 15 rows scraped from the static seed on first load, dynamically re-rendered on every add/edit/delete; row click calls `viewStudent(id)` |
+| add-lesson / add-exam / add-quiz forms | No `id`s on inputs; Save buttons still call `saveAndClose('<modal-id>', '<toast message>')` — out of the daily-use-campaign's scope unless Sailaja asks (`sailaja-os-frontier-and-method` Item 5) |
+| Tweaks panel | Renders `null` until activated: `page.evaluate(() => window.postMessage({type:'__activate_edit_mode'}, '*'))`, then `#tweaks-root` gets children. This is the component's own design (an edit-mode overlay), not something the campaign fix changed |
 
 ## Recipes
 
@@ -165,13 +182,18 @@ page.on('pageerror', e => pageErrors.push(String(e)));
 
 ## Failure interpretation
 
-- **`typeof addNewStudent === 'function'` unexpectedly** (i.e. it's no longer
-  `'undefined'`) — the daily-use-campaign resurrection fix has landed (or
-  someone partially wired the block). Good news, but re-read
-  `sailaja-os-data-model-and-migrations` before trusting *what* it now
-  writes — the schema catalog there is the designed contract, not yet a
-  verified-live one until you re-run this smoke test and it flips green on
-  purpose.
+- **`typeof addNewStudent === 'undefined'`** — the persistence layer has
+  regressed to (or toward) the pre-campaign dead state. Re-read
+  `sailaja-os-failure-archaeology` Incident 1 before touching anything;
+  check `grep -n 'text/babel' index.html` first (should be empty except in
+  comments referencing the old incident).
+- **`initDatabase()` writes fewer than 15 records, or `teach_os_students`
+  stays `null` after load** — the scraper threw partway through. Check for a
+  static row whose markup doesn't match what the scraper expects (this
+  exact failure mode is Incident 2 in `sailaja-os-failure-archaeology`: the
+  A1/A2 rows' level cell has no `.badge` span). Diagnose with
+  `page.on('pageerror', ...)` registered before `goto` — the exception is
+  silent in the DOM, loud in `pageerror`.
 - **`page.goto` fails / `ERR_CONNECTION_REFUSED`** — server not running or
   wrong port. `lib.mjs`'s `startServer()` fails fast if port 8931 is already
   in use by something else — free it (`lsof -ti :8931 | xargs kill`) rather
@@ -187,18 +209,21 @@ page.on('pageerror', e => pageErrors.push(String(e)));
   absence of an error is itself part of that mechanism's proof, not evidence
   of health. See `sailaja-os-failure-archaeology` Incident 1.
 
-## Recorded outputs (real runs, 2026-07-21, HEAD `9fef6e5`, server on :8931)
+## Recorded outputs
 
-`smoke.mjs`:
+**`smoke.mjs`** (real run, 2026-07-21, post-campaign-fix, HEAD still
+`9fef6e5` — the fix is a working-tree change not yet committed at time of
+writing; re-run after committing to confirm the recorded output still
+holds):
 
 ```
 PASS  sidebar brand renders  (actual: true)
 PASS  dashboard is the default active page  (actual: true)
-PASS  static student rows present (design fixture, §2 of data-model skill)  (actual: 15)
-PASS  DB layer dead: typeof addNewStudent  (actual: "undefined")
-PASS  DB layer dead: teach_os_students never written  (actual: null)
-PASS  tweaks panel never mounts (JSX block also dead)  (actual: 0)
-PASS  tweaks-panel.js globals DO load (plain <script src>, negative control)  (actual: "function")
+PASS  initDatabase scraped exactly 15 students into the dynamic render  (actual: 15)
+PASS  addNewStudent is a real function  (actual: "function")
+PASS  teach_os_students is written on first load  (actual: true)
+PASS  tweaks-panel.js globals load (plain <script src>)  (actual: "function")
+PASS  tweaks panel renders once activated  (actual: 2)
 PASS  toggleDark() flips sailaja-dark  (actual: true)
 PASS  no console errors at load  (actual: [])
 PASS  no uncaught page errors at load  (actual: [])
@@ -207,9 +232,49 @@ PASS  no failed requests  (actual: [])
 PASS: 11/11 checks passed (http://localhost:8931/index.html)
 ```
 
+Superseded output (pre-fix, same day): the previous version of this script
+asserted the founding defect itself (`addNewStudent` undefined,
+`teach_os_students` null) and passed `11/11` proving the app was still
+broken. That version is preserved in `sailaja-os-failure-archaeology`
+Incident 1's evidence section, not here — this section always reflects
+current expected behavior, not history.
+
+**`verify-crud.mjs`** (real run, 2026-07-21, immediately after the fix):
+
+```
+PASS  addNewStudent is a real function  (actual: "function")
+PASS  initDatabase scraped 15 students  (actual: 15)
+PASS  tweaks panel renders once activated  (actual: 2)
+PASS  student count 15 -> 16  (actual: 16)
+PASS  new student is unshifted to front  (actual: "Test Playwright")
+PASS  currBadge derived correctly  (actual: "IBDP")
+PASS  curr derived correctly  (actual: "ibdp")
+PASS  band derived correctly (IBDP always senior)  (actual: "senior")
+PASS  session-student preselected to the right student  (actual: "16")
+PASS  exactly 1 session logged  (actual: 1)
+PASS  session studentId matches  (actual: 16)
+PASS  view-student profile pre-filled with real data  (actual: "Test Playwright")
+PASS  name updated in store  (actual: "Test Playwright Edited")
+PASS  edited name renders in table  (actual: "Test Playwright Edited")
+PASS  after reload: still 16 students  (actual: 16)
+PASS  after reload: edited name survived  (actual: "Test Playwright Edited")
+PASS  after reload: session still there  (actual: 1)
+PASS  after reload: table still shows 16 rows  (actual: 16)
+PASS  after delete: back to 15 students  (actual: 15)
+PASS  after delete: cascade removed the session  (actual: 0)
+PASS  deleted student gone from table  (actual: 0)
+PASS  dark mode toggle unaffected  (actual: true)
+PASS  filterStudents unaffected (still a function)  (actual: "function")
+PASS  no console errors across the whole run  (actual: [])
+PASS  no uncaught page errors across the whole run  (actual: [])
+
+PASS: 25/25 checks passed (http://localhost:8931/index.html)
+```
+
 `dump-store.mjs` (fresh test profile, then seeded with the §6 fixture from
 `sailaja-os-data-model-and-migrations`, then re-run unseeded to confirm
-persistence):
+persistence — run pre-fix; the same-origin `NO_APP_URL` mechanism this
+script relies on is unaffected by the fix, so this output still holds):
 
 ```
 teach_os_students: null
@@ -249,21 +314,24 @@ float equality on seeded ids.
 
 ## Provenance and maintenance
 
-Authored 2026-07-21 against HEAD `9fef6e5` (`index.html`, 1987 lines).
+Authored 2026-07-21 against HEAD `9fef6e5` (`index.html`, then 1987 lines).
 `lib.mjs` was authored 2026-07-20 (per its header comment) but had never been
-run until this skill's `smoke.mjs`/`dump-store.mjs` were written and executed
-against it the same day as this file. Re-verify with one command:
+run until this skill's scripts were written and executed against it the same
+day. The daily-use-campaign Phase 1-3 fix landed later the same day as a
+working-tree change (not yet committed at time of writing) — `smoke.mjs` and
+this file were updated in step, and `verify-crud.mjs` was added. Re-verify
+with one command:
 
 ```bash
 export PW_PATH=/Users/mponamgi/Documents/Personal-finance-tracker/node_modules
-node .claude/skills/sailaja-os-browser-verification/scripts/smoke.mjs
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs
 ```
 
-If it prints `11/11 PASS`, this skill's ground truth still holds — in
-particular the three founding-defect predictions are still true and the
-daily-use-campaign fix has not yet landed. If any of those three flip, some
-other session changed the persistence layer; re-read the diff before
-continuing any campaign work planned against the old (dead) state.
+If it prints `25/25 PASS`, the persistence layer (students, sessions,
+edit/delete, reload-survival) is intact. Run `smoke.mjs` first for a faster
+minimum-bar check (`11/11 PASS`). If either regresses, re-read
+`sailaja-os-failure-archaeology` Incidents 1 and 2 before assuming you know
+the cause — both were counter-intuitive on first read.
 
 - `PW_PATH` points at a sibling repo by absolute path — if
   `Personal-finance-tracker` moves or its `node_modules` is pruned, either

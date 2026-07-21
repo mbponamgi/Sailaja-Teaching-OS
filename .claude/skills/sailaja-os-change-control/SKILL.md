@@ -66,29 +66,39 @@ The feature was dead for over two months and nobody noticed, because it was
 never once verified in a browser. The commit message claims it works; the
 browser proves it never ran. That is the entire case for this rule.
 
+**Status update, 2026-07-21: fixed.** The daily-use-campaign Phase 1-3 fix
+ported the persistence functions out of the dead block and wired up
+sessions and student edit/delete, verified by a 25-check real-browser
+add→edit→**reload**→delete regression
+(`sailaja-os-browser-verification`'s `verify-crud.mjs`). Full incident
+record, including the exact mechanism (this commit removed the only Babel
+runtime on the page in the same diff that added new JSX depending on it) and
+the fix: `sailaja-os-failure-archaeology` Incident 1. The worked example
+above stays as written — it's the argument for the rule, not a live status
+report; check the archaeology skill or re-run the verify script for current
+truth.
+
 Mechanics — serving, the Playwright script templates, what to assert, how to
 print PASS/FAIL — live in `sailaja-os-browser-verification`. The gate here is
 binary: **no browser evidence, no commit.**
 
-### 2. NEVER endanger saved data once `teach_os_students` is live
+### 2. NEVER endanger saved data now that `teach_os_students` is live
 
-**Honest status as of 2026-07-20: no real data exists yet.** The
-`teach_os_students` key has never been written (see incident above); the only
-live localStorage key is `sailaja-dark` (dark-mode flag, `index.html:1682`
-and `:1686`).
-
-But the daily-use campaign (`sailaja-os-daily-use-campaign`) will resurrect
-the database and put **Sailaja's real student roster** into
-`teach_os_students`. From the moment real data exists there, it is
-irreplaceable — one teacher's actual records, in one browser, with no backend
-and no backup. From that moment:
+**Status update, 2026-07-21: ARMED.** The daily-use-campaign Phase 1-3 fix
+resurrected the database (`sailaja-os-failure-archaeology` Incident 1) —
+`teach_os_students` and the new `teach_os_sessions` are now written on real
+use. The moment Sailaja opens the app, her actual roster starts accumulating
+there. It is irreplaceable — one teacher's actual records, in one browser,
+with no backend and no backup (that gap is `sailaja-os-frontier-and-method`
+Item 4, not yet built). From now on:
 
 - Any change to the shape of a student record (fields on the objects in the
-  `teach_os_students` array — currently designed as `id, name, parent,
-  currBadge, levelBadge, focus, schedule, progress`, see
-  `index.html:1901`/`1955`) **must ship a migration** so old saved data loads
-  correctly under new code. Schema catalog and migration patterns →
-  `sailaja-os-data-model-and-migrations`.
+  `teach_os_students` array — live shape: `id, name, parent, currBadge,
+  curr, band, levelBadge, focus, schedule, progress`, cataloged in
+  `sailaja-os-data-model-and-migrations` §1) or a session record
+  (`teach_os_sessions`, §1's session table) **must ship a migration** so old
+  saved data loads correctly under new code. Schema catalog and migration
+  patterns → `sailaja-os-data-model-and-migrations`.
 - **No renaming or removing localStorage keys without a migration** that
   copies the data — a renamed key is silent total data loss.
 - **Backup before any risky change**: before verifying a schema-touching or
@@ -140,10 +150,12 @@ git diff --name-only | grep -q "tweaks-panel.jsx" && \
   || echo "OK: jsx untouched (or PAIR VIOLATION if jsx changed alone)"
 ```
 
-(As of 2026-07-20 the one existing `text/babel` block at `index.html:1789` is
-a known dead defect awaiting the campaign — do not add more, and do not
-remove it casually either: removing/converting it IS the campaign's job and a
-behavior + data-schema change.)
+(Status update, 2026-07-21: the `text/babel` block has been removed —
+`TweaksApp` was rewritten as plain `React.createElement` calls, JSX-free, in
+the same fix that resurrected the database. `grep -n 'text/babel' index.html`
+should now return nothing but comment references to the historical
+incident. If it ever returns a live `<script type="text/babel">` tag again,
+that's a regression — see `sailaja-os-failure-archaeology` Incident 1.)
 
 ## Change classification and required gates
 
@@ -155,7 +167,7 @@ pass the **union** of all its gates.
 | (a) **UI / cosmetic** | CSS, colors, spacing, dark-mode styling, sidebar layout, favicon | Browser smoke: page loads with zero console errors, changed element renders in both light and dark mode (`sailaja-dark` toggle). No migration needed. |
 | (b) **Content** | Quiz questions, lesson text, message templates (`copyTemplate` blocks), vocabulary/word lists — static HTML inside `index.html` | Browser smoke: page loads with zero console errors and the changed content is visible. Content lives inside the same 1987-line file as all the JS — a stray `</script>`, unclosed tag, or unescaped backtick can kill the whole app, so this is NOT exempt from a browser load. |
 | (c) **Data-schema** | Anything touching the `teach_os_students` key or the shape of student records; adding/renaming/removing any localStorage key | Schema reasoning + migration per non-negotiable #2 (→ `sailaja-os-data-model-and-migrations`) · Playwright run that seeds **old-shape** localStorage and asserts the app loads and renders it · owner sign-off if a key or record field is renamed/removed · backup-before-verify once real data exists (post-campaign). |
-| (d) **Behavior / JS logic** | Any function body, event handler, `onclick`, script block, render logic, the dead-block resurrection itself | Full Playwright verification driving the changed flow with asserted outcomes and printed PASS/FAIL (non-negotiable #1) · confirm no `type="text/babel"` introduced (non-negotiable #3) · if the change writes localStorage, also gate (c). Known latent defects to not regress or blindly copy: `renderStudents()` interpolates `${s.name}`/`${s.parent}`/etc. into `innerHTML` **unescaped** (`index.html:1931–1939`, stored-XSS-shaped) and hardcodes `data-band="primary"` on every dynamic row (`index.html:1928`). |
+| (d) **Behavior / JS logic** | Any function body, event handler, `onclick`, script block, render logic | Full Playwright verification driving the changed flow with asserted outcomes and printed PASS/FAIL (non-negotiable #1) · confirm no `type="text/babel"` introduced (non-negotiable #3) · if the change writes localStorage, also gate (c). Two latent defects that WERE present are now fixed (2026-07-21, see `sailaja-os-data-model-and-migrations` §1) — don't regress them: `renderStudents()` now escapes every interpolated field before `innerHTML` (was stored-XSS-shaped) and derives `data-band` from the real record instead of hardcoding `'primary'`. |
 | (e) **Vendor / deps** | The CDN lines (`index.html:8–10`: Google Fonts + unpkg React 18.3.1 dev builds), the `tweaks-panel.jsx`/`.js` pair, vendoring deps locally | Owner sign-off for ANY new external request (see below) · direction of travel is **vendor locally, no external network** (owner, 2026-07-20) — removing a CDN in favor of a vendored copy is aligned, adding one is not · recompile-pair discipline per non-negotiable #3 · full offline browser pass after vendoring (app works with network blocked). |
 | (f) **Deploy / hosting** | Publishing anywhere, GitHub Pages, any new host; changes under `.github/workflows/` (currently stock Claude PR workflows) | Owner sign-off for any new host · verify the deployed URL in a real browser, not just the local copy. |
 | (g) **Docs / skills** | `.claude/skills/**`, `README.md` (currently a stub), comments | The only class exempt from a browser run — EXCEPT: any runnable command or script a skill ships must be actually run before committing (a skill script is a runnable claim), and comment-only edits inside `index.html` are class (b) (they can still break the file). Commit-message style → `sailaja-os-docs-and-commits`. |
@@ -269,23 +281,27 @@ before committing — silence is not resolution.
 
 ## Provenance and maintenance
 
-Authored 2026-07-20; all facts verified against the working tree at HEAD
-`9fef6e5` on that date. Volatile facts and their one-line re-verification
-commands (run from the repo root):
+Authored 2026-07-20 against HEAD `9fef6e5`; updated 2026-07-21 after the
+daily-use-campaign Phase 1-3 fix landed (working-tree change at time of
+writing). Volatile facts and their one-line re-verification commands (run
+from the repo root):
 
-- Dead babel block still at line 1789 (goes away when the campaign lands):
-  `grep -n 'type="text/babel"' index.html`
-- CDN/external lines still 8–10 (goes away when vendoring lands):
+- No live dead babel block (fixed 2026-07-21 — should only match comments
+  referencing the historical incident): `grep -n 'type="text/babel"' index.html`
+- CDN/external lines still 8–10 (goes away when vendoring lands, still
+  unstarted — `sailaja-os-frontier-and-method` Item 2):
   `grep -n "unpkg\|googleapis" index.html`
-- localStorage keys: `grep -n "localStorage" index.html | grep -v "DB_KEY)"`
-- Database functions and DB_KEY: `grep -n "DB_KEY\|addNewStudent\|initDatabase\|renderStudents" index.html`
-- Unescaped innerHTML + hardcoded band in renderStudents:
-  `sed -n '1926,1940p' index.html`
+- localStorage keys (now three, was two): `grep -n "localStorage" index.html`
+- Database + session functions: `grep -n "DB_KEY\|SESSIONS_KEY\|addNewStudent\|initDatabase\|renderStudents\|logSession\|deleteStudent\|saveStudentEdit" index.html`
+- Escaped innerHTML + real band derivation (fixed 2026-07-21 — confirm the
+  fix, don't assume it): `grep -n "function esc\|function deriveCurrBand" index.html`
 - tweaks-panel globals export: `grep -n "Object.assign(window" tweaks-panel.js`
 - Still no build system / lint / tests: `ls package.json 2>&1; ls *.test.* 2>/dev/null`
 - File inventory and line counts: `wc -l index.html sailaja_teaching_os_v2.html tweaks-panel.js tweaks-panel.jsx`
-- Whether `teach_os_students` holds real data yet (flips non-negotiable #2
-  from "future" to "armed"): check Sailaja's browser profile, not the repo —
+- Whether `teach_os_students` holds Sailaja's real data yet (the store is
+  now armed and writable — this checks whose data, not whether it's
+  possible): check Sailaja's browser profile, not the repo —
   `localStorage.getItem('teach_os_students')` in her browser console.
+- Persistence layer alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs` (expect `25/25 PASS`).
 - Cross-references assume the sibling skills named above exist:
   `ls .claude/skills/`

@@ -30,18 +30,24 @@ try {
 
   check('sidebar brand renders', await page.locator('.sidebar-brand, .sidebar .brand, .sidebar').first().isVisible(), true);
   check('dashboard is the default active page', await page.locator('#page-dashboard.active').isVisible(), true);
-  check('static student rows present (design fixture, §2 of data-model skill)',
-    await page.locator('#students-table tbody tr').count(), n => n >= 14 || (n.label ?? true));
+  check('initDatabase scraped exactly 15 students into the dynamic render',
+    await page.locator('#students-table tbody tr').count(), 15);
 
-  // Founding-defect predictions (sailaja-os-change-control non-negotiable #1
-  // worked example; sailaja-os-data-model-and-migrations §0). This smoke test
-  // doubles as the campaign's baseline probe — these three should all still
-  // read as BROKEN until the daily-use-campaign resurrection fix ships.
-  check('DB layer dead: typeof addNewStudent', await page.evaluate(() => typeof window.addNewStudent), 'undefined');
-  check('DB layer dead: teach_os_students never written', await page.evaluate(k => localStorage.getItem(k), DB_KEY), null);
-  check('tweaks panel never mounts (JSX block also dead)', await page.evaluate(() => document.getElementById('tweaks-root').children.length), 0);
-  check('tweaks-panel.js globals DO load (plain <script src>, negative control)',
+  // Persistence-layer checks (sailaja-os-daily-use-campaign Phase 2 landed
+  // 2026-07-21 — sailaja-os-failure-archaeology Incident 1 is now SETTLED).
+  // These are the same three predictions the founding-defect incident used,
+  // now inverted: if any of these three regress back to the old values,
+  // the dead-block bug (or something exactly like it) has come back.
+  check('addNewStudent is a real function', await page.evaluate(() => typeof window.addNewStudent), 'function');
+  check('teach_os_students is written on first load', await page.evaluate(k => localStorage.getItem(k) !== null, DB_KEY), true);
+  check('tweaks-panel.js globals load (plain <script src>)',
     await page.evaluate(() => typeof window.useTweaks), 'function');
+  // TweaksPanel renders null until externally activated via postMessage
+  // (an edit-mode overlay, by design — not a bug) — activate it to prove
+  // the (now JSX-free) TweaksApp component tree actually mounts.
+  await page.evaluate(() => window.postMessage({ type: '__activate_edit_mode' }, '*'));
+  await page.waitForTimeout(300);
+  check('tweaks panel renders once activated', await page.evaluate(() => document.getElementById('tweaks-root').children.length), n => n > 0);
 
   // Live feature: dark mode toggle + its one live localStorage key.
   const darkBefore = await page.evaluate(k => localStorage.getItem(k), DARK_KEY);
