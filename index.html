@@ -1117,6 +1117,10 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <div class="lesson-item"><div class="lesson-num">4</div><div class="lesson-info"><div class="lesson-title">IB Individual Oral — stimulus approach</div><div class="lesson-meta">60 min · IO methodology</div></div><span class="badge badge-draft">Draft</span></div>
     </div>
   </div>
+  <div class="card" id="my-lessons-card" style="margin-top:16px;display:none;">
+    <div class="card-header"><span class="card-title">My Lesson Plans</span></div>
+    <div id="dynamic-lessons-list"></div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════
@@ -1215,6 +1219,11 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <tr><td><strong>June 10</strong></td><td>Zara F.</td><td><span class="badge badge-ibdp">IBDP</span></td><td>Individual Oral Practice (recorded)</td><td><span class="badge badge-needs">Upcoming</span></td></tr>
     </tbody></table>
   </div>
+  <div class="card" id="my-exams-card" style="margin-bottom:16px;display:none;">
+    <div class="card-header"><span class="card-title">Logged Exams</span></div>
+    <table><thead><tr><th>Date</th><th>Student</th><th>Curriculum</th><th>Exam / Assessment</th><th>Prep Status</th></tr></thead>
+    <tbody id="dynamic-exams-list"></tbody></table>
+  </div>
   <div class="grid-2">
     <div class="card">
       <div class="card-header"><span class="card-title">CBSE Board Prep — Rohan K.</span></div>
@@ -1298,6 +1307,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <div class="quiz-opt" onclick="answerQuiz(this,false)">Listening comprehension</div>
     </div>
   </div>
+  <div id="dynamic-quiz-list"></div>
 </div>
 
 <!-- ══════════════════════════════════════
@@ -1515,19 +1525,19 @@ Sailaja</div>
     <button class="modal-close" onclick="closeModal('add-lesson')">✕</button>
     <div class="modal-title">New Lesson Plan</div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Lesson Title</label><input class="form-control" type="text" placeholder="e.g. Passé composé — avoir verbs"></div>
-      <div class="form-group"><label class="form-label">Curriculum</label><select class="form-control"><option>A1/A2</option><option>CBSE</option><option>Cambridge</option><option>IBDP</option></select></div>
+      <div class="form-group"><label class="form-label">Lesson Title</label><input id="lesson-title" class="form-control" type="text" placeholder="e.g. Passé composé — avoir verbs"></div>
+      <div class="form-group"><label class="form-label">Curriculum</label><select id="lesson-curr" class="form-control"><option>A1/A2</option><option>CBSE</option><option>Cambridge</option><option>IBDP</option></select></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Grade / Level</label><input class="form-control" type="text" placeholder="e.g. Grade 9 / IBDP SL"></div>
-      <div class="form-group"><label class="form-label">Duration</label><select class="form-control"><option>45 minutes</option><option>60 minutes</option><option>75 minutes</option><option>90 minutes</option></select></div>
+      <div class="form-group"><label class="form-label">Grade / Level</label><input id="lesson-level" class="form-control" type="text" placeholder="e.g. Grade 9 / IBDP SL"></div>
+      <div class="form-group"><label class="form-label">Duration</label><select id="lesson-duration" class="form-control"><option>45 minutes</option><option>60 minutes</option><option>75 minutes</option><option>90 minutes</option></select></div>
     </div>
-    <div class="form-group"><label class="form-label">Learning Objectives</label><textarea class="form-control" placeholder="By the end of this lesson, the student will be able to..."></textarea></div>
-    <div class="form-group"><label class="form-label">Activities & Materials</label><textarea class="form-control" placeholder="Warm-up, teach, practice, production, wrap-up..."></textarea></div>
-    <div class="form-group"><label class="form-label">Homework</label><input class="form-control" type="text" placeholder="e.g. Complete exercises + write 10 sentences"></div>
+    <div class="form-group"><label class="form-label">Learning Objectives</label><textarea id="lesson-objectives" class="form-control" placeholder="By the end of this lesson, the student will be able to..."></textarea></div>
+    <div class="form-group"><label class="form-label">Activities & Materials</label><textarea id="lesson-activities" class="form-control" placeholder="Warm-up, teach, practice, production, wrap-up..."></textarea></div>
+    <div class="form-group"><label class="form-label">Homework</label><input id="lesson-homework" class="form-control" type="text" placeholder="e.g. Complete exercises + write 10 sentences"></div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-lesson')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAndClose('add-lesson','Lesson plan saved!')">Save</button>
+      <button class="btn btn-primary" onclick="addLesson()">Save</button>
     </div>
   </div>
 </div>
@@ -1538,18 +1548,18 @@ Sailaja</div>
     <button class="modal-close" onclick="closeModal('add-exam')">✕</button>
     <div class="modal-title">Add Exam / Assessment</div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Student</label><select class="form-control"><option>All CBSE</option><option>All Cambridge</option><option>All IBDP</option><option>Rohan K.</option><option>Layla H.</option><option>Ishaan M.</option><option>Zara F.</option><option>Meera S.</option></select></div>
-      <div class="form-group"><label class="form-label">Exam Date</label><input class="form-control" type="date"></div>
+      <div class="form-group"><label class="form-label">Student</label><select id="exam-student" class="form-control"><option value="all-cbse">All CBSE</option><option value="all-cambridge">All Cambridge</option><option value="all-ibdp">All IBDP</option></select></div>
+      <div class="form-group"><label class="form-label">Exam Date</label><input id="exam-date" class="form-control" type="date"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Exam Name</label><input class="form-control" type="text" placeholder="e.g. CBSE Board Mock Paper"></div>
-      <div class="form-group"><label class="form-label">Curriculum</label><select class="form-control"><option>CBSE</option><option>Cambridge IGCSE</option><option>IBDP</option><option>A1/A2 Assessment</option></select></div>
+      <div class="form-group"><label class="form-label">Exam Name</label><input id="exam-name" class="form-control" type="text" placeholder="e.g. CBSE Board Mock Paper"></div>
+      <div class="form-group"><label class="form-label">Curriculum</label><select id="exam-curriculum" class="form-control"><option>CBSE</option><option>Cambridge IGCSE</option><option>IBDP</option><option>A1/A2 Assessment</option></select></div>
     </div>
-    <div class="form-group"><label class="form-label">Prep Status</label><select class="form-control"><option>Not started</option><option>In preparation</option><option>On track / Ready</option></select></div>
-    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" placeholder="Topics to cover before exam, focus areas..."></textarea></div>
+    <div class="form-group"><label class="form-label">Prep Status</label><select id="exam-prep" class="form-control"><option>Not started</option><option>In preparation</option><option>On track / Ready</option></select></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="exam-notes" class="form-control" placeholder="Topics to cover before exam, focus areas..."></textarea></div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-exam')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAndClose('add-exam','Exam added!')">Add Exam</button>
+      <button class="btn btn-primary" onclick="addExam()">Add Exam</button>
     </div>
   </div>
 </div>
@@ -1560,16 +1570,16 @@ Sailaja</div>
     <button class="modal-close" onclick="closeModal('add-quiz')">✕</button>
     <div class="modal-title">Add Quiz Question</div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Curriculum</label><select class="form-control"><option>A1/A2</option><option>CBSE</option><option>Cambridge</option><option>IBDP</option></select></div>
-      <div class="form-group"><label class="form-label">Category</label><select class="form-control"><option>Vocabulary</option><option>Grammar</option><option>Reading</option><option>Writing</option><option>Literary analysis</option></select></div>
+      <div class="form-group"><label class="form-label">Curriculum</label><select id="quiz-curr" class="form-control"><option>A1/A2</option><option>CBSE</option><option>Cambridge</option><option>IBDP</option></select></div>
+      <div class="form-group"><label class="form-label">Category</label><select id="quiz-category" class="form-control"><option>Vocabulary</option><option>Grammar</option><option>Reading</option><option>Writing</option><option>Literary analysis</option></select></div>
     </div>
-    <div class="form-group"><label class="form-label">Question</label><textarea class="form-control" placeholder="Enter the question..."></textarea></div>
-    <div class="form-row"><div class="form-group"><label class="form-label">Option A</label><input class="form-control" type="text"></div><div class="form-group"><label class="form-label">Option B</label><input class="form-control" type="text"></div></div>
-    <div class="form-row"><div class="form-group"><label class="form-label">Option C</label><input class="form-control" type="text"></div><div class="form-group"><label class="form-label">Option D</label><input class="form-control" type="text"></div></div>
-    <div class="form-group"><label class="form-label">Correct Answer</label><select class="form-control"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+    <div class="form-group"><label class="form-label">Question</label><textarea id="quiz-question" class="form-control" placeholder="Enter the question..."></textarea></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Option A</label><input id="quiz-opt-a" class="form-control" type="text"></div><div class="form-group"><label class="form-label">Option B</label><input id="quiz-opt-b" class="form-control" type="text"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Option C</label><input id="quiz-opt-c" class="form-control" type="text"></div><div class="form-group"><label class="form-label">Option D</label><input id="quiz-opt-d" class="form-control" type="text"></div></div>
+    <div class="form-group"><label class="form-label">Correct Answer</label><select id="quiz-correct" class="form-control"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-quiz')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveAndClose('add-quiz','Question added!')">Add Question</button>
+      <button class="btn btn-primary" onclick="addQuizQuestion()">Add Question</button>
     </div>
   </div>
 </div>
@@ -2192,10 +2202,199 @@ function logSession() {
   saveAndClose('add-session', 'Session logged!');
 }
 
+// ── Lessons, exams, quiz bank (Phase 3(d) — built on owner request 2026-07-21)
+const LESSONS_KEY = 'teach_os_lessons';
+const EXAMS_KEY = 'teach_os_exams';
+const QUIZ_KEY = 'teach_os_quiz';
+
+// Shared by the lesson and quiz curriculum selects (both use the same
+// four-option set: "A1/A2", "CBSE", "Cambridge", "IBDP").
+function currKeyFromLabel(label) {
+  const l = (label || '').toLowerCase();
+  if (l.startsWith('a1')) return 'a1';
+  if (l.startsWith('cbse')) return 'cbse';
+  if (l.startsWith('cambridge')) return 'cambridge';
+  if (l.startsWith('ibdp')) return 'ibdp';
+  return 'a1';
+}
+function badgeClassForCurr(curr) {
+  if (curr === 'cbse') return 'badge-cbse';
+  if (curr === 'cambridge') return 'badge-cam';
+  if (curr === 'ibdp') return 'badge-ibdp';
+  return 'badge-a1';
+}
+
+function addLesson() {
+  const title = document.getElementById('lesson-title').value.trim();
+  if (!title) return alert('Please enter a lesson title.');
+  const currLabel = document.getElementById('lesson-curr').value;
+  const lessons = JSON.parse(localStorage.getItem(LESSONS_KEY)) || [];
+  lessons.unshift({
+    id: nextId(lessons), title, curr: currKeyFromLabel(currLabel), currLabel,
+    level: document.getElementById('lesson-level').value,
+    duration: document.getElementById('lesson-duration').value,
+    objectives: document.getElementById('lesson-objectives').value,
+    activities: document.getElementById('lesson-activities').value,
+    homework: document.getElementById('lesson-homework').value,
+  });
+  localStorage.setItem(LESSONS_KEY, JSON.stringify(lessons));
+  renderLessons();
+
+  document.getElementById('lesson-title').value = '';
+  document.getElementById('lesson-level').value = '';
+  document.getElementById('lesson-objectives').value = '';
+  document.getElementById('lesson-activities').value = '';
+  document.getElementById('lesson-homework').value = '';
+
+  saveAndClose('add-lesson', 'Lesson plan saved!');
+}
+
+function renderLessons() {
+  const list = document.getElementById('dynamic-lessons-list');
+  const card = document.getElementById('my-lessons-card');
+  if (!list || !card) return;
+  const lessons = JSON.parse(localStorage.getItem(LESSONS_KEY)) || [];
+  card.style.display = lessons.length ? '' : 'none';
+  list.innerHTML = lessons.map(l => `
+    <div class="lesson-item">
+      <div class="lesson-num">★</div>
+      <div class="lesson-info">
+        <div class="lesson-title">${esc(l.title)}</div>
+        <div class="lesson-meta">${esc(l.duration)} · ${esc(l.currLabel)}${l.level ? ' · ' + esc(l.level) : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function populateExamStudentSelect() {
+  const sel = document.getElementById('exam-student');
+  if (!sel) return;
+  const chosen = sel.value;
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  sel.innerHTML =
+    '<option value="all-cbse">All CBSE</option><option value="all-cambridge">All Cambridge</option><option value="all-ibdp">All IBDP</option>' +
+    students.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  if (chosen) sel.value = chosen;
+}
+
+function examStudentLabel(value) {
+  if (value === 'all-cbse') return 'All CBSE';
+  if (value === 'all-cambridge') return 'All Cambridge';
+  if (value === 'all-ibdp') return 'All IBDP';
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  const s = students.find(x => String(x.id) === String(value));
+  return s ? s.name : 'Unknown';
+}
+
+function prepBadgeClass(status) {
+  if (status === 'On track / Ready') return 'badge-good';
+  if (status === 'In preparation') return 'badge-working';
+  return 'badge-needs';
+}
+
+function addExam() {
+  const examName = document.getElementById('exam-name').value.trim();
+  if (!examName) return alert('Please enter an exam name.');
+  const examDate = document.getElementById('exam-date').value;
+  if (!examDate) return alert('Please pick an exam date.');
+  const studentValue = document.getElementById('exam-student').value;
+
+  const exams = JSON.parse(localStorage.getItem(EXAMS_KEY)) || [];
+  exams.push({
+    id: nextId(exams), studentValue, studentLabel: examStudentLabel(studentValue),
+    examName, examDate,
+    curriculum: document.getElementById('exam-curriculum').value,
+    prepStatus: document.getElementById('exam-prep').value,
+    notes: document.getElementById('exam-notes').value,
+  });
+  localStorage.setItem(EXAMS_KEY, JSON.stringify(exams));
+  renderExams();
+
+  document.getElementById('exam-name').value = '';
+  document.getElementById('exam-date').value = '';
+  document.getElementById('exam-notes').value = '';
+
+  saveAndClose('add-exam', 'Exam added!');
+}
+
+function renderExams() {
+  const list = document.getElementById('dynamic-exams-list');
+  const card = document.getElementById('my-exams-card');
+  if (!list || !card) return;
+  const exams = JSON.parse(localStorage.getItem(EXAMS_KEY)) || [];
+  card.style.display = exams.length ? '' : 'none';
+  list.innerHTML = exams.slice()
+    .sort((a, b) => (a.examDate || '').localeCompare(b.examDate || ''))
+    .map(e => `
+      <tr>
+        <td><strong>${esc(e.examDate)}</strong></td>
+        <td>${esc(e.studentLabel)}</td>
+        <td><span class="badge badge-primary">${esc(e.curriculum)}</span></td>
+        <td>${esc(e.examName)}</td>
+        <td><span class="badge ${prepBadgeClass(e.prepStatus)}">${esc(e.prepStatus)}</span></td>
+      </tr>
+    `).join('');
+}
+
+function addQuizQuestion() {
+  const question = document.getElementById('quiz-question').value.trim();
+  if (!question) return alert('Please enter a question.');
+  const optA = document.getElementById('quiz-opt-a').value.trim();
+  const optB = document.getElementById('quiz-opt-b').value.trim();
+  const optC = document.getElementById('quiz-opt-c').value.trim();
+  const optD = document.getElementById('quiz-opt-d').value.trim();
+  if (!optA || !optB || !optC || !optD) return alert('Please fill in all four options.');
+  const currLabel = document.getElementById('quiz-curr').value;
+
+  const quiz = JSON.parse(localStorage.getItem(QUIZ_KEY)) || [];
+  quiz.push({
+    id: nextId(quiz), curr: currKeyFromLabel(currLabel), currLabel,
+    category: document.getElementById('quiz-category').value,
+    question, optA, optB, optC, optD,
+    correct: document.getElementById('quiz-correct').value,
+  });
+  localStorage.setItem(QUIZ_KEY, JSON.stringify(quiz));
+  renderQuiz();
+
+  document.getElementById('quiz-question').value = '';
+  document.getElementById('quiz-opt-a').value = '';
+  document.getElementById('quiz-opt-b').value = '';
+  document.getElementById('quiz-opt-c').value = '';
+  document.getElementById('quiz-opt-d').value = '';
+
+  saveAndClose('add-quiz', 'Question added!');
+}
+
+function renderQuiz() {
+  const list = document.getElementById('dynamic-quiz-list');
+  if (!list) return;
+  const quiz = JSON.parse(localStorage.getItem(QUIZ_KEY)) || [];
+  list.innerHTML = quiz.map((q, i) => {
+    const opts = [['A', q.optA], ['B', q.optB], ['C', q.optC], ['D', q.optD]];
+    const optsHtml = opts.map(([letter, text]) =>
+      `<div class="quiz-opt" onclick="answerQuiz(this,${letter === q.correct})">${esc(text)}</div>`
+    ).join('');
+    return `
+      <div class="quiz-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span class="badge ${badgeClassForCurr(q.curr)}">${esc(q.currLabel)}</span>
+          <span style="font-size:0.7rem;color:var(--ink3);">${esc(q.category)}</span>
+        </div>
+        <div class="quiz-q">${5 + i}. ${esc(q.question)}</div>
+        <div class="quiz-options">${optsHtml}</div>
+      </div>
+    `;
+  }).join('');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initDatabase();
   renderStudents();
   populateSessionStudentSelect();
+  populateExamStudentSelect();
+  renderLessons();
+  renderExams();
+  renderQuiz();
 });
 </script>
 </body>

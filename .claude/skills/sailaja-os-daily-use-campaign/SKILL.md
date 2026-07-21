@@ -3,10 +3,11 @@ name: sailaja-os-daily-use-campaign
 description: >
   Executable, phase-gated campaign that resurrected the Sailaja Teaching
   OS's dead persistence layer — the owner's #1 priority (2026-07-20). Core
-  phases (0-3a/b/c) are DONE as of 2026-07-21. Load this when: extending the
-  persistence work further (lesson/exam/quiz persistence, live counts, or
-  anything else in Item 5's "nice to have" table, only if Sailaja actually
-  asks); resuming Phase 3(d) or a new phase; understanding HOW and WHEN the
+  phases (0-3, all of a/b/c/d) are DONE as of 2026-07-21 — Phase 3(d)
+  (lesson/exam/quiz persistence) shipped same-day on explicit owner request,
+  right after a/b/c. Load this when: extending further (live counts, or
+  anything else remaining in Item 5's "nice to have" table, only if Sailaja
+  actually asks); resuming a new phase; understanding HOW and WHEN the
   student/session CRUD fix was sequenced (the record of what shipped and in
   what order); or as the template for phase-gating any future multi-session
   campaign in this repo. NOT for diagnosing a bug in the now-live
@@ -24,9 +25,11 @@ multi-session campaign that turned the Sailaja Teaching OS from a demo that
 can actually run her daily practice on. The owner's frame, dated 2026-07-20
 (`sailaja-os-frontier-and-method` §"The owner's frame"): **priority #1,
 outranking everything else**, was resurrecting the dead persistence layer.
-Phases 0 through 3(a)(b)(c) below executed Item 1 of that skill's roadmap in
-a single session and are now complete; Phase 3(d) and beyond stay open for
-future work Sailaja actually asks for. The phase structure is kept (not
+Phases 0 through 3(d) below executed Item 1 of that skill's roadmap — 3(a),
+(b), (c) in the session's main pass, then (d) the same day on explicit
+owner follow-up request — and are now complete. Beyond this skill's scope
+(Items 2-4, and whatever remains of Item 5) stays open for future work
+Sailaja or the owner actually asks for. The phase structure is kept (not
 deleted) both as the historical record and as a template for any future
 campaign here.
 
@@ -91,13 +94,15 @@ line numbers below are stale by design, re-grep function names):
   Editing them now is a no-op (`sailaja-os-data-model-and-migrations` §2
   item 3) — that was already true by design, unchanged.
 - **Storage-backed surfaces**: add-student, add-session (student select now
-  dynamic), and the rebuilt view-student modal (edit + delete) all persist
-  for real. add-lesson/add-exam/add-quiz remain toast-only — out of scope
-  unless Sailaja asks (Phase 3(d), below).
+  dynamic), the rebuilt view-student modal (edit + delete), and — as of the
+  same-day Phase 3(d) follow-up — add-lesson, add-exam (student select now
+  dynamic too), and add-quiz all persist for real. Nothing routes through
+  `saveAndClose()` for storage anymore.
 - **Verification tooling**: `sailaja-os-browser-verification`'s `smoke.mjs`
-  (now asserts the LIVE state, 11/11) and the new `verify-crud.mjs` (the
+  (now asserts the LIVE state, 11/11), `verify-crud.mjs` (the
   full add→session→edit→reload→delete regression, 25/25 — this is the
-  campaign's success metric made permanent).
+  campaign's success metric made permanent), and `verify-content-crud.mjs`
+  (the same reload-survival test for lessons/exams/quiz, 26/26).
 
 ---
 
@@ -121,7 +126,7 @@ first load, tweaks panel renders once activated via `postMessage`.)
 ## GATE 0
 
 - **25/25 (or 11/11 for the quick check) PASS** → the persistence layer is
-  intact; proceed to Phase 3(d) or whatever new work this session is for.
+  intact; proceed with whatever new work this session is for.
 - **`typeof addNewStudent === 'undefined'`, or any of the founding-defect
   predictions flip back to their old (dead) values** → STOP. The
   persistence layer has regressed — re-read `sailaja-os-failure-archaeology`
@@ -240,11 +245,23 @@ anti-roadmap discipline) — `progress` is now just another field in the
 student-edit form (`saveStudentEdit()`), same free-text `"NN%"` format as
 before.
 
-**(d) Everything else that routes through `saveAndClose`** (add-lesson,
-add-exam, add-quiz — `sailaja-os-frontier-and-method`'s Item 5 "nice to
-have" table) **stays toast-only, unchanged** — still not in scope unless
-Sailaja specifically asks for it. This is the one item in this phase that
-is genuinely still open.
+**(d) Everything else that routes through `saveAndClose` — DONE 2026-07-21,
+built on explicit owner request.** add-lesson, add-exam, and add-quiz all
+got real `id`s and real save handlers (`addLesson()`, `addExam()`,
+`addQuizQuestion()`), writing to three new keys
+(`teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`) and rendering into
+new "hidden until non-empty" cards on their respective pages. **Deliberately
+smaller in scope than (a)/(b)**: add-and-persist only, no edit/delete path
+for any of the three — that was a scope call, not an oversight, kept the
+diff proportionate to what was actually asked for. The exam form's student
+select is now dynamic (real students + the three bulk "All CBSE" etc.
+options); a chosen student's name is snapshotted into the exam record at
+save time, not re-resolved live (documented tradeoff, not a bug — see
+`sailaja-os-data-model-and-migrations`'s exam schema section). Quiz
+questions render as real `.quiz-card`s reusing the existing `answerQuiz()`
+handler unchanged. **Acceptance confirmed**: added one of each, reloaded,
+all three counts and all three cards/lists survived —
+`sailaja-os-browser-verification`'s `verify-content-crud.mjs`, 26/26 PASS.
 
 **Result confirmed** (echoing `sailaja-os-frontier-and-method`'s falsifiable
 milestones): one Playwright script performed all three actions in sequence,
@@ -269,8 +286,8 @@ have no such interdependency forcing a bundle.
 Every phase-2/3 change, in order, no skipping (same discipline as the
 sibling FFOS import-hardening campaign, adapted). This protocol was
 followed for the 2026-07-21 fix (see the "Result confirmed"/"Gates passed"
-lines in each phase above) and remains the checklist for Phase 3(d) or any
-future extension:
+lines in each phase above, including Phase 3(d)) and remains the checklist
+for any future extension:
 
 1. **Phase 0 baseline green before** (`verify-crud.mjs` — or `smoke.mjs` for
    a quicker partial check).
@@ -336,31 +353,39 @@ nothing regressed.
 None directly — this skill is the plan; `sailaja-os-browser-verification`'s
 `scripts/` dir hosts the actual tooling. That skill's `smoke.mjs` and
 `dump-store.mjs` were built alongside this skill (2026-07-21, pre-fix);
-`verify-crud.mjs` was added immediately after the Phase 1-3 fix landed and
-is now the campaign's success metric made permanent — it graduated into
-that skill's `scripts/` dir per its own lifecycle section, per this skill's
-job being sequencing, not hosting scripts. Phase 3(d) or any future item
-follows the same pattern: implement in `index.html`, verify with a script,
-graduate durable scripts into `sailaja-os-browser-verification`.
+`verify-crud.mjs` was added immediately after the Phase 1-3(a)(b)(c) fix
+landed, and `verify-content-crud.mjs` immediately after Phase 3(d) — both
+are now this campaign's success metrics made permanent, graduated into that
+skill's `scripts/` dir per its own lifecycle section, per this skill's job
+being sequencing, not hosting scripts. Any future item follows the same
+pattern: implement in `index.html`, verify with a script, graduate durable
+scripts into `sailaja-os-browser-verification`.
 
 # Provenance and maintenance
 
 Authored 2026-07-21 against HEAD `9fef6e5` (`index.html`, then 1987 lines,
 Phase 0 baseline `11/11 PASS` against the dead state). Phases 1-3(a)(b)(c)
 executed the same day, in the same session, as a single working-tree change
-(not yet committed at time of writing — confirm it's been committed before
-trusting "DONE" claims blindly); Phase 0's baseline flipped to `25/25 PASS`
-against the live state as a result. Owner directives (non-negotiables,
-campaign priority) dated 2026-07-20, recorded verbatim in
+(committed `bfbd285`, pushed to `origin/main`); Phase 3(d) followed
+immediately after in the same session, on explicit owner request, as its
+own change on top. Phase 0's baseline flipped to `25/25 PASS` (then a
+second baseline, `verify-content-crud.mjs`, to `26/26 PASS`) against the
+live state as a result. Owner directives (non-negotiables, campaign
+priority) dated 2026-07-20, recorded verbatim in
 `sailaja-os-frontier-and-method` and `sailaja-os-change-control`.
 
 **Maintenance:** this skill's phase statuses were updated in the SAME
 change as the code they describe (per Phase 4 step 6) — that discipline
-continues for Phase 3(d) or any future phase: update the status line
-("not yet started" → "in progress" → "DONE, see commit `<hash>`") in the
-same commit as the work. The closing archaeology entry for this campaign's
-core work lives in `sailaja-os-failure-archaeology` (Incident 1 moved from
-OPEN to SETTLED, Incident 2 recorded as a bonus catch). Re-verify the whole
-campaign's result with one command:
-`PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs`
-— `25/25 PASS` means Phases 0-3(a)(b)(c) still hold.
+continues for any future phase: update the status line ("not yet started" →
+"in progress" → "DONE, see commit `<hash>`") in the same commit as the
+work. The closing archaeology entry for this campaign's core work lives in
+`sailaja-os-failure-archaeology` (Incident 1 moved from OPEN to SETTLED,
+Incident 2 recorded as a bonus catch). Re-verify the whole campaign's
+result with two commands:
+
+```bash
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-content-crud.mjs
+```
+
+`25/25 PASS` and `26/26 PASS` mean Phases 0-3 (all of a/b/c/d) still hold.

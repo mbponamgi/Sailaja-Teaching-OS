@@ -255,7 +255,7 @@ or wait. Recorded so they aren't re-invented as big ideas:
 | Schedule-aware dashboard | "9 classes this week · 3 exams coming up" is a hardcoded string (line 513); schedule page is a static May-2026 table (line 1125) | Dashboard counts computed from stored schedules match a hand-counted seed |
 | Live counts | Nav badge "14" (457), page subtitles (704, 885, 916…) hardcoded | Add a student → every count increments, no hardcoded numbers left in those elements |
 | Real "Recent Sessions" | Hardcoded April entries (594–618, 938–981) | Cards render the seed's newest sessions, newest first |
-| Lesson-plan / exam / quiz persistence | add-lesson, add-exam, add-quiz modals are toast-only (1530/1552/1572) | Same reload-survival test as Item 1, per entity — only if Sailaja actually asks |
+| ~~Lesson-plan / exam / quiz persistence~~ | **DONE 2026-07-21**, built on explicit owner request. `teach_os_lessons`/`teach_os_exams`/`teach_os_quiz` all live; add-only (no edit/delete, deliberately smaller scope than Item 1). Verified: `sailaja-os-browser-verification`'s `verify-content-crud.mjs`, 26/26 PASS including reload-survival | Milestone met — see `sailaja-os-daily-use-campaign` Phase 3(d) |
 
 ## THE ANTI-ROADMAP (owner ruled these OUT, 2026-07-20)
 

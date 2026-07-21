@@ -5,12 +5,14 @@ description: >
   Load this skill when: about to commit ANY behavior change; asked to verify
   or test a change; writing a verify script; seeding or reading
   `teach_os_students`/`sailaja-dark` in localStorage; testing the daily-use
-  campaign's persistence work; or whenever "how do I test this" comes up.
-  Encodes the house rule (non-negotiable #1 in sailaja-os-change-control): no
-  change ships on "looks right" alone — serve the app locally, drive the real
-  UI with headless Playwright, and print PASS/FAIL evidence. Ships three
-  working scripts (smoke test, store dumper/seeder, full CRUD-and-reload
-  regression) plus the shared plumbing they all use.
+  campaign's persistence work (students, sessions, lessons, exams, quiz
+  questions); or whenever "how do I test this" comes up. Encodes the house
+  rule (non-negotiable #1 in sailaja-os-change-control): no change ships on
+  "looks right" alone — serve the app locally, drive the real UI with
+  headless Playwright, and print PASS/FAIL evidence. Ships four working
+  scripts (smoke test, store dumper/seeder, student/session CRUD-and-reload
+  regression, lesson/exam/quiz CRUD-and-reload regression) plus the shared
+  plumbing they all use.
 ---
 
 # Sailaja OS Browser Verification
@@ -53,11 +55,14 @@ node .claude/skills/sailaja-os-browser-verification/scripts/smoke.mjs
 #    regression (the daily-use-campaign's stated success metric, executable):
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs
 
-# 3. Inspect or seed the persistent test-profile store (no app JS runs):
+# 3. After any change touching lessons/exams/quiz questions:
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-content-crud.mjs
+
+# 4. Inspect or seed the persistent test-profile store (no app JS runs):
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs /path/to/seed.json
 
-# 4. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
+# 5. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
 #    structure into a throwaway verify-<change>.mjs (scratch dir, never
 #    committed) and adapt the DRIVE/ASSERT section — see "Writing a new
 #    verify script" below.
@@ -101,6 +106,7 @@ Same standard as the sibling FFOS repo (`ffos-browser-verification`), adapted:
 | `lib.mjs` | Shared plumbing: Playwright resolution (`PW_PATH` fallback), canonical server (port 8931, fail-fast if busy), PASS/FAIL checker, console/page error collectors, the persistent test-profile dir, `DB_KEY`/`DARK_KEY` constants | Imported by every other script — not run directly |
 | `smoke.mjs` | Boots the app in a **throwaway** context, asserts sidebar renders, dashboard is the default active page, `initDatabase()` scrapes exactly 15 students, `addNewStudent` is a real function, `teach_os_students` is written, the tweaks panel renders once activated via `postMessage`, `toggleDark()` flips `sailaja-dark`, zero console/page errors/failed requests | After every change; the minimum bar |
 | `verify-crud.mjs` | The daily-use-campaign's stated success metric, executable: add a student via the real form → log a session for them via the row's "Log" button → edit their name via the profile modal → **reload the page** → delete them (cascade-removes their session). Asserts exact counts and field values at every step, including post-reload. Negative controls: dark mode, `filterStudents`, zero console/page errors throughout | After any change touching students, sessions, or the view-student/add-session modals — this is the one that actually proves persistence, not just that a function exists |
+| `verify-content-crud.mjs` | Phase 3(d)'s regression: add a lesson, an exam (linked to a real student), and a quiz question via their real forms, asserts each new store (`teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`) went 0→1 with correct derived fields, the "hidden until non-empty" cards become visible, the dynamic quiz card's `answerQuiz()` click reports correctly, **reloads**, and re-asserts all three. Negative controls: the 4 static quiz cards stay exactly 4, `addNewStudent`/`logSession` unaffected | After any change touching lessons, exams, or quiz questions |
 | `dump-store.mjs` | Uses a **persistent** test-profile context (survives across separate runs) to read, and optionally seed, `teach_os_students` — navigates to a same-origin 404 page (`NO_APP_URL`) so **zero app script runs**, meaning it never triggers `initDatabase()`'s one-shot first-run scrape | Inspecting the store shape; seeding old- or new-shape data for a migration test; preparing fixture state before a behavior-change verify script drives the real UI |
 
 All three were run for real (`smoke.mjs`/`dump-store.mjs` authored
@@ -271,6 +277,40 @@ PASS  no uncaught page errors across the whole run  (actual: [])
 PASS: 25/25 checks passed (http://localhost:8931/index.html)
 ```
 
+**`verify-content-crud.mjs`** (real run, 2026-07-21, Phase 3(d), built on
+owner request immediately after the core persistence fix):
+
+```
+PASS  lessons card hidden when empty  (actual: false)
+PASS  lesson count 0 -> 1  (actual: 1)
+PASS  lesson curr derived to cambridge  (actual: "cambridge")
+PASS  lessons card now visible  (actual: true)
+PASS  lesson title rendered  (actual: "Test Lesson — Subjonctif")
+PASS  exams card hidden when empty  (actual: false)
+PASS  exam count 0 -> 1  (actual: 1)
+PASS  exam resolved to the real student name  (actual: "Aarav T.")
+PASS  exams card now visible  (actual: true)
+PASS  exam row shows the student name  (actual: "Aarav T.")
+PASS  4 static quiz cards present before adding  (actual: 4)
+PASS  quiz count 0 -> 1  (actual: 1)
+PASS  static quiz cards still exactly 4 (dynamic ones are separate)  (actual: 4)
+PASS  dynamic quiz card rendered  (actual: "5. Test question: \"chat\" means?")
+PASS  clicking the correct option shows the correct toast  (actual: "✓ Correct! Très bien!")
+PASS  after reload: lesson count still 1  (actual: 1)
+PASS  after reload: exam count still 1  (actual: 1)
+PASS  after reload: quiz count still 1  (actual: 1)
+PASS  after reload: lessons card still visible  (actual: true)
+PASS  after reload: exams card still visible  (actual: true)
+PASS  after reload: dynamic quiz card still rendered  (actual: 1)
+PASS  after reload: 4 static quiz cards unaffected  (actual: 4)
+PASS  addNewStudent still a function  (actual: "function")
+PASS  logSession still a function  (actual: "function")
+PASS  no console errors across the whole run  (actual: [])
+PASS  no uncaught page errors across the whole run  (actual: [])
+
+PASS: 26/26 checks passed (http://localhost:8931/index.html)
+```
+
 `dump-store.mjs` (fresh test profile, then seeded with the §6 fixture from
 `sailaja-os-data-model-and-migrations`, then re-run unseeded to confirm
 persistence — run pre-fix; the same-origin `NO_APP_URL` mechanism this
@@ -325,13 +365,15 @@ with one command:
 ```bash
 export PW_PATH=/Users/mponamgi/Documents/Personal-finance-tracker/node_modules
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-content-crud.mjs
 ```
 
-If it prints `25/25 PASS`, the persistence layer (students, sessions,
-edit/delete, reload-survival) is intact. Run `smoke.mjs` first for a faster
-minimum-bar check (`11/11 PASS`). If either regresses, re-read
-`sailaja-os-failure-archaeology` Incidents 1 and 2 before assuming you know
-the cause — both were counter-intuitive on first read.
+If both print `25/25 PASS` and `26/26 PASS`, the whole persistence layer
+(students, sessions, edit/delete, reload-survival, plus lessons/exams/quiz)
+is intact. Run `smoke.mjs` first for a faster minimum-bar check
+(`11/11 PASS`). If any regress, re-read `sailaja-os-failure-archaeology`
+Incidents 1 and 2 before assuming you know the cause — both were
+counter-intuitive on first read.
 
 - `PW_PATH` points at a sibling repo by absolute path — if
   `Personal-finance-tracker` moves or its `node_modules` is pruned, either

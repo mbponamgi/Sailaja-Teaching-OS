@@ -1,18 +1,20 @@
 ---
 name: sailaja-os-data-model-and-migrations
 description: >
-  Complete catalog of the Sailaja Teaching OS's persisted data model —
-  'teach_os_students', 'teach_os_sessions' (live since the 2026-07-21
-  daily-use-campaign fix), and the 'sailaja-dark' preference — and the
-  migration discipline protecting Sailaja's real student roster now that the
-  store is live. Load this skill when: adding, renaming, or removing ANY
-  field on a student or session record; touching initDatabase(),
-  renderStudents(), addNewStudent(), saveStudentEdit(), deleteStudent(), or
-  the session functions; reading or writing any of the three localStorage
-  keys; writing or reviewing a data migration; authoring seed data or test
-  fixtures; or interpreting stored contents. Also covers the DOM-scrape
-  seeding pipeline (the static HTML table IS the seed fixture) and a
-  canonical minimal seed JSON for browser tests.
+  Complete catalog of the Sailaja Teaching OS's persisted data model — six
+  localStorage keys as of 2026-07-21: 'teach_os_students', 'teach_os_sessions',
+  'teach_os_lessons', 'teach_os_exams', 'teach_os_quiz' (all live), and the
+  'sailaja-dark' preference — and the migration discipline protecting
+  Sailaja's real student roster now that the store is live. Load this skill
+  when: adding, renaming, or removing ANY field on a student, session,
+  lesson, exam, or quiz-question record; touching initDatabase(),
+  renderStudents(), addNewStudent(), saveStudentEdit(), deleteStudent(),
+  the session functions, or addLesson()/addExam()/addQuizQuestion(); reading
+  or writing any of the six localStorage keys; writing or reviewing a data
+  migration; authoring seed data or test fixtures; or interpreting stored
+  contents. Also covers the DOM-scrape seeding pipeline (the static HTML
+  table IS the seed fixture) and a canonical minimal seed JSON for browser
+  tests.
 ---
 
 # Sailaja OS Data Model and Migrations
@@ -61,16 +63,21 @@ before citing, per "Provenance and maintenance").
 
 ## 1. Complete catalog of persisted state
 
-Three localStorage keys as of the 2026-07-21 fix (was two; `teach_os_sessions`
-is new). Nothing else persists (`tweaks-panel.js` contains no localStorage
+Six localStorage keys as of 2026-07-21 (was two before that day's work —
+the persistence-layer fix added `teach_os_sessions`, and Phase 3(d)
+afterward added `teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`).
+Nothing else persists (`tweaks-panel.js` contains no localStorage
 calls). localStorage is **per-origin**: `http://localhost:8000` and
 `http://localhost:8001` are different stores — a port change makes the app
 "forget" everything (triage for that → `sailaja-os-debugging-playbook`).
 
 | Key | Status | Value | Written by | Read by |
 |---|---|---|---|---|
-| `teach_os_students` | **LIVE** since 2026-07-21 | JSON array of student records (schema below) | `initDatabase()`, `addNewStudent()`, `saveStudentEdit()`, `deleteStudent()` | `renderStudents()`, `viewStudent()`, `populateSessionStudentSelect()` |
-| `teach_os_sessions` | **LIVE** since 2026-07-21 (new) | JSON array of session records — also serves as the attendance record (a session with `studentId`+`date` IS attendance; no separate feature was built, per `sailaja-os-frontier-and-method` Item 1) | `logSession()`, `deleteStudent()` (cascade-removes a deleted student's sessions) | `getSessionsForStudent()`, `renderViewStudentSessions()` |
+| `teach_os_students` | **LIVE** since 2026-07-21 | JSON array of student records (schema below) | `initDatabase()`, `addNewStudent()`, `saveStudentEdit()`, `deleteStudent()` | `renderStudents()`, `viewStudent()`, `populateSessionStudentSelect()`, `populateExamStudentSelect()` |
+| `teach_os_sessions` | **LIVE** since 2026-07-21 | JSON array of session records — also serves as the attendance record (a session with `studentId`+`date` IS attendance; no separate feature was built, per `sailaja-os-frontier-and-method` Item 1) | `logSession()`, `deleteStudent()` (cascade-removes a deleted student's sessions) | `getSessionsForStudent()`, `renderViewStudentSessions()` |
+| `teach_os_lessons` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of lesson-plan records (schema below) | `addLesson()` | `renderLessons()` |
+| `teach_os_exams` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of exam records (schema below) | `addExam()` | `renderExams()` |
+| `teach_os_quiz` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of quiz-question records (schema below) | `addQuizQuestion()` | `renderQuiz()` |
 | `sailaja-dark` | **LIVE** (unchanged) | string `'1'` or `'0'` | `toggleDark()` | restore IIFE, runs before DOMContentLoaded |
 
 `DB_KEY = 'teach_os_students'` and `SESSIONS_KEY = 'teach_os_sessions'` are
@@ -134,6 +141,51 @@ A session record with `studentId` + `date` **is** the attendance record —
 no separate attendance feature exists or is planned (`sailaja-os-frontier-and-method`
 Item 1 rules this out explicitly; don't re-propose it without new owner
 direction).
+
+### Lesson, exam, and quiz-question schemas (new, 2026-07-21, Phase 3(d))
+
+Built on explicit owner request, after Item 1's core CRUD. No edit/delete
+path exists for any of these three — add-and-persist only, deliberately
+smaller in scope than the student/session work. `nextId()` and `esc()` are
+shared with the student/session functions.
+
+**`teach_os_lessons`** (append via `unshift`, newest first, matching the
+students convention):
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Number, integer | `nextId()`, own counter (independent of students/sessions) |
+| `title` | String | Required — `addLesson()` alerts and refuses to save without it |
+| `curr` | String | `'a1'`\|`'cbse'`\|`'cambridge'`\|`'ibdp'` — derived from `currLabel` via `currKeyFromLabel()`, the same four-option select used by the quiz curriculum field |
+| `currLabel` | String | The raw select value (`"A1/A2"`, `"CBSE"`, `"Cambridge"`, `"IBDP"`) — kept alongside `curr` so the exact display label survives without re-deriving it |
+| `level` | String | Free text, optional |
+| `duration` | String | One of the select's four fixed values (`"45 minutes"` etc.) |
+| `objectives`, `activities`, `homework` | String | Free text, optional |
+
+**`teach_os_exams`** (append via `push`; `renderExams()` sorts by
+`examDate` ascending for display, unlike students/lessons which show
+newest-first):
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Number, integer | Own counter |
+| `studentValue` | String | Either a bulk sentinel (`'all-cbse'`\|`'all-cambridge'`\|`'all-ibdp'`) or a real student's `id` as a string — whichever the `#exam-student` select held at save time |
+| `studentLabel` | String | Resolved display text at save time (`examStudentLabel()`): the bulk label, or the matching student's `name`. **Snapshotted, not live** — if a student is later renamed or deleted, existing exam records keep the OLD label; there's no foreign-key-style re-resolution on render. Acceptable for this feature's scope; flag if that ever needs to change. |
+| `examName`, `examDate` | String | Both required — `addExam()` alerts and refuses to save without either |
+| `curriculum` | String | One of the select's four fixed values |
+| `prepStatus` | String | One of `"Not started"`/`"In preparation"`/`"On track / Ready"` — `prepBadgeClass()` maps to the existing `badge-needs`/`badge-working`/`badge-good` CSS classes |
+| `notes` | String | Free text, optional |
+
+**`teach_os_quiz`** (append via `push`; rendered after the 4 static
+built-in quiz cards, numbered continuing from 5):
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Number, integer | Own counter |
+| `curr`, `currLabel` | String | Same derivation as lessons |
+| `category` | String | One of the select's five fixed values |
+| `question`, `optA`, `optB`, `optC`, `optD` | String | All required — `addQuizQuestion()` alerts if the question or any option is blank |
+| `correct` | String | `'A'`\|`'B'`\|`'C'`\|`'D'` — `renderQuiz()` compares each rendered option's letter against this to wire the existing `answerQuiz(el, correct)` handler (reused unchanged, not reimplemented) |
 
 ## 2. The seeding pipeline — the static HTML table IS the seed fixture
 
