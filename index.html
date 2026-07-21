@@ -1423,6 +1423,9 @@ Sailaja</div>
     </div>
     <div class="comm-card">
       <div class="comm-card-header"><span class="comm-type">Fee Reminder</span><button class="btn btn-ghost btn-sm" onclick="copyTemplate('fee')">Copy</button></div>
+      <div style="padding:10px 14px 0;">
+        <select id="fee-reminder-student" class="form-control" style="font-size:0.78rem;padding:6px 8px;"><option value="">Select student for real values…</option></select>
+      </div>
       <div class="comm-body" id="t-fee">Bonjour <span class="fill-blank">[Parent Name]</span>,
 
 Gentle reminder — <span class="fill-blank">[Month]</span> fees for <span class="fill-blank">[Student]</span>'s French tuition:
@@ -1539,7 +1542,10 @@ Sailaja</div>
       </div>
       <div class="form-group"><label class="form-label">Time & Duration</label><input id="new-student-time" class="form-control" type="text" placeholder="e.g. 4:30 PM · 60 min"></div>
     </div>
-    <div class="form-group"><label class="form-label">Parent Name & WhatsApp</label><input id="new-student-parent" class="form-control" type="text" placeholder="e.g. Mrs. Sharma — 98765XXXXX"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Parent Name & WhatsApp</label><input id="new-student-parent" class="form-control" type="text" placeholder="e.g. Mrs. Sharma — 98765XXXXX"></div>
+      <div class="form-group"><label class="form-label">Monthly Fee (₹)</label><input id="new-student-fee" class="form-control" type="number" min="0" step="1" placeholder="e.g. 2000 (optional)"></div>
+    </div>
     <div class="form-group"><label class="form-label">Focus / Notes</label><textarea id="new-student-focus" class="form-control" placeholder="Board exam prep, weak areas, special needs..."></textarea></div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-student')">Cancel</button>
@@ -1574,6 +1580,29 @@ Sailaja</div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-session')">Cancel</button>
       <button class="btn btn-primary" onclick="logSession()">Save Session</button>
+    </div>
+  </div>
+</div>
+
+<!-- Record Payment -->
+<div class="modal-bg" id="modal-add-payment">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-payment')">✕</button>
+    <div class="modal-title">Record Payment</div>
+    <div class="modal-sub">Log a fee payment for this student.</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Student</label>
+        <select id="payment-student" class="form-control"><option value="">Select student…</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Month</label><input id="payment-month" class="form-control" type="month"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Amount (₹)</label><input id="payment-amount" class="form-control" type="number" min="0" step="1"></div>
+      <div class="form-group"><label class="form-label">Paid On</label><input id="payment-paidon" class="form-control" type="date"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('add-payment')">Cancel</button>
+      <button class="btn btn-primary" onclick="logPayment()">Save Payment</button>
     </div>
   </div>
 </div>
@@ -1659,10 +1688,17 @@ Sailaja</div>
       <div class="form-group"><label class="form-label">Level</label><input id="vs-level" class="form-control" type="text" placeholder="e.g. Grade 10 / A1 Week 1"></div>
     </div>
     <div class="form-group"><label class="form-label">Schedule</label><input id="vs-schedule" class="form-control" type="text" placeholder="e.g. Tue · 4:00 PM"></div>
-    <div class="form-group"><label class="form-label">Parent Name & WhatsApp</label><input id="vs-parent" class="form-control" type="text"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Parent Name & WhatsApp</label><input id="vs-parent" class="form-control" type="text"></div>
+      <div class="form-group"><label class="form-label">Monthly Fee (₹)</label><input id="vs-fee" class="form-control" type="number" min="0" step="1" placeholder="e.g. 2000 (optional)"></div>
+    </div>
     <div class="form-group"><label class="form-label">Focus / Notes</label><textarea id="vs-focus" class="form-control"></textarea></div>
     <div class="form-group"><label class="form-label">Recent Sessions</label>
       <ul id="vs-sessions" style="list-style:none;padding:0;margin:0;font-size:13px;color:var(--ink2);max-height:120px;overflow-y:auto;"></ul>
+    </div>
+    <div class="form-group"><label class="form-label">Fees <span id="vs-fee-status" class="badge" style="margin-left:6px;"></span></label>
+      <ul id="vs-payments" style="list-style:none;padding:0;margin:0 0 8px;font-size:13px;color:var(--ink2);max-height:100px;overflow-y:auto;"></ul>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('view-student');openPaymentModalFor(currentViewStudentId)">+ Record Payment</button>
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="deleteStudent()">Delete</button>
@@ -1865,6 +1901,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── Copy comm templates
 function copyTemplate(id) {
+  if (id === 'fee') return copyFeeReminder();
   const el = document.getElementById('t-' + id);
   navigator.clipboard.writeText(el.innerText)
     .then(() => showToast('✓ Template copied to clipboard!'))
@@ -1978,6 +2015,10 @@ mountTweaks();
 // attendance feature.
 const DB_KEY = 'teach_os_students';
 const SESSIONS_KEY = 'teach_os_sessions';
+// Fees ledger (sailaja-os-frontier-and-method Item 3): a payment record with
+// studentId+month IS the paid/due fact for that month -- no separate
+// "invoice" entity, matching the sessions-as-attendance design precedent.
+const PAYMENTS_KEY = 'teach_os_payments';
 let currentViewStudentId = null;
 
 // Escapes text before innerHTML interpolation — fixes the stored-XSS-shaped
@@ -2204,12 +2245,14 @@ function addNewStudent() {
   const time = document.getElementById('new-student-time').value;
   const parent = document.getElementById('new-student-parent').value || 'Parent Info N/A';
   const focus = document.getElementById('new-student-focus').value || 'General';
+  const feeRaw = document.getElementById('new-student-fee').value;
+  const monthlyFee = feeRaw !== '' ? parseInt(feeRaw, 10) : null;
   const { currBadge, curr, band } = deriveCurrBand(currSelect, level);
 
   const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
   const newStudent = {
     id: nextId(students), name, parent, currBadge, levelBadge: level, focus,
-    schedule: day.substring(0,3) + ' · ' + time, progress: '0%', curr, band,
+    schedule: day.substring(0,3) + ' · ' + time, progress: '0%', curr, band, monthlyFee,
   };
 
   students.unshift(newStudent);
@@ -2217,6 +2260,8 @@ function addNewStudent() {
 
   renderStudents();
   populateSessionStudentSelect();
+  populatePaymentStudentSelect();
+  populateFeeReminderStudentSelect();
   renderLiveCounts();
 
   document.getElementById('new-student-name').value = '';
@@ -2224,6 +2269,7 @@ function addNewStudent() {
   document.getElementById('new-student-time').value = '';
   document.getElementById('new-student-parent').value = '';
   document.getElementById('new-student-focus').value = '';
+  document.getElementById('new-student-fee').value = '';
 
   saveAndClose('add-student', 'Student added successfully!');
 }
@@ -2239,8 +2285,10 @@ function viewStudent(id) {
   document.getElementById('vs-schedule').value = s.schedule;
   document.getElementById('vs-progress').value = s.progress;
   document.getElementById('vs-parent').value = s.parent;
+  document.getElementById('vs-fee').value = s.monthlyFee != null ? s.monthlyFee : '';
   document.getElementById('vs-focus').value = s.focus;
   renderViewStudentSessions(id);
+  renderViewStudentPayments(id);
   openModal('view-student');
 }
 
@@ -2254,6 +2302,7 @@ function saveStudentEdit() {
   if (!name) return alert('Please enter a student name.');
   const level = document.getElementById('vs-level').value || 'Grade N/A';
   const { currBadge, curr, band } = deriveCurrBand(document.getElementById('vs-curr').value, level);
+  const feeRaw = document.getElementById('vs-fee').value;
 
   students[idx] = {
     ...students[idx],
@@ -2261,21 +2310,25 @@ function saveStudentEdit() {
     schedule: document.getElementById('vs-schedule').value || students[idx].schedule,
     progress: document.getElementById('vs-progress').value || students[idx].progress,
     parent: document.getElementById('vs-parent').value || 'Parent Info N/A',
+    monthlyFee: feeRaw !== '' ? parseInt(feeRaw, 10) : null,
     focus: document.getElementById('vs-focus').value || 'General',
   };
 
   localStorage.setItem(DB_KEY, JSON.stringify(students));
   renderStudents();
   populateSessionStudentSelect();
+  populatePaymentStudentSelect();
+  populateFeeReminderStudentSelect();
   renderLiveCounts();
   renderCBSERecentSessions();
+  renderViewStudentPayments(currentViewStudentId);
   closeModal('view-student');
   showToast('✓ Student updated!');
 }
 
 function deleteStudent() {
   if (currentViewStudentId == null) return;
-  if (!confirm('Delete this student? This also removes their logged sessions. This cannot be undone.')) return;
+  if (!confirm('Delete this student? This also removes their logged sessions and payment records. This cannot be undone.')) return;
   const id = currentViewStudentId;
 
   let students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
@@ -2286,9 +2339,15 @@ function deleteStudent() {
   sessions = sessions.filter(x => x.studentId !== id);
   localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
 
+  let payments = JSON.parse(localStorage.getItem(PAYMENTS_KEY)) || [];
+  payments = payments.filter(x => x.studentId !== id);
+  localStorage.setItem(PAYMENTS_KEY, JSON.stringify(payments));
+
   currentViewStudentId = null;
   renderStudents();
   populateSessionStudentSelect();
+  populatePaymentStudentSelect();
+  populateFeeReminderStudentSelect();
   renderLiveCounts();
   renderCBSERecentSessions();
   closeModal('view-student');
@@ -2352,6 +2411,137 @@ function logSession() {
   document.getElementById('session-notes').value = '';
 
   saveAndClose('add-session', 'Session logged!');
+}
+
+// ── Fees ledger (sailaja-os-frontier-and-method Item 3)
+
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatMonthLabel(monthKey) {
+  const d = new Date(`${monthKey}-01T00:00:00`);
+  if (isNaN(d.getTime())) return monthKey || '';
+  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+function getPaymentsForStudent(id) {
+  const payments = JSON.parse(localStorage.getItem(PAYMENTS_KEY)) || [];
+  return payments.filter(p => p.studentId === id)
+    .sort((a, b) => (b.month || '').localeCompare(a.month || '') || (b.paidOn || '').localeCompare(a.paidOn || ''));
+}
+
+function isPaidForMonth(id, monthKey) {
+  const payments = JSON.parse(localStorage.getItem(PAYMENTS_KEY)) || [];
+  return payments.some(p => p.studentId === id && p.month === monthKey);
+}
+
+function renderViewStudentPayments(id) {
+  const list = document.getElementById('vs-payments');
+  const statusEl = document.getElementById('vs-fee-status');
+  if (!list || !statusEl) return;
+
+  const payments = getPaymentsForStudent(id);
+  list.innerHTML = payments.length
+    ? payments.map(p => `<li>${esc(formatMonthLabel(p.month))} — ₹${esc(String(p.amount))} (paid ${esc(p.paidOn)})</li>`).join('')
+    : '<li>No payments recorded yet.</li>';
+
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  const student = students.find(s => s.id === id);
+  const monthKey = currentMonthKey();
+  if (!student || student.monthlyFee == null) {
+    statusEl.textContent = 'No fee set';
+    statusEl.className = 'badge';
+  } else if (isPaidForMonth(id, monthKey)) {
+    statusEl.textContent = `Paid — ${formatMonthLabel(monthKey)}`;
+    statusEl.className = 'badge badge-good';
+  } else {
+    statusEl.textContent = `Due — ${formatMonthLabel(monthKey)}`;
+    statusEl.className = 'badge badge-needs';
+  }
+}
+
+function populatePaymentStudentSelect(preselectId) {
+  const sel = document.getElementById('payment-student');
+  if (!sel) return;
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  sel.innerHTML = '<option value="">Select student…</option>' +
+    students.map(s => `<option value="${s.id}">${esc(s.name)} — ${esc(s.currBadge)} ${esc(s.levelBadge)}</option>`).join('');
+  if (preselectId != null) sel.value = String(preselectId);
+}
+
+function openPaymentModalFor(id) {
+  populatePaymentStudentSelect(id);
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  const student = students.find(s => s.id === id);
+  document.getElementById('payment-month').value = currentMonthKey();
+  document.getElementById('payment-amount').value = (student && student.monthlyFee != null) ? student.monthlyFee : '';
+  document.getElementById('payment-paidon').value = new Date().toISOString().slice(0, 10);
+  openModal('add-payment');
+}
+
+function logPayment() {
+  const studentId = parseInt(document.getElementById('payment-student').value, 10);
+  const month = document.getElementById('payment-month').value;
+  const amountRaw = document.getElementById('payment-amount').value;
+  if (!studentId) return alert('Please select a student.');
+  if (!month) return alert('Please pick a month.');
+  if (!amountRaw) return alert('Please enter an amount.');
+
+  const payments = JSON.parse(localStorage.getItem(PAYMENTS_KEY)) || [];
+  payments.push({
+    id: nextId(payments), studentId, month,
+    amount: parseInt(amountRaw, 10),
+    paidOn: document.getElementById('payment-paidon').value || new Date().toISOString().slice(0, 10),
+  });
+  localStorage.setItem(PAYMENTS_KEY, JSON.stringify(payments));
+
+  if (currentViewStudentId === studentId) renderViewStudentPayments(studentId);
+
+  saveAndClose('add-payment', 'Payment recorded!');
+}
+
+function populateFeeReminderStudentSelect() {
+  const sel = document.getElementById('fee-reminder-student');
+  if (!sel) return;
+  const chosen = sel.value;
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  sel.innerHTML = '<option value="">Select student for real values…</option>' +
+    students.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  if (chosen) sel.value = chosen;
+}
+
+// Fills the Fee Reminder template with the selected student's real parent
+// name, current month, and configured monthly fee -- Item 3's stated
+// milestone. Date/UPI stay manual blanks (not stored data, hers to fill).
+function copyFeeReminder() {
+  const sel = document.getElementById('fee-reminder-student');
+  const studentId = sel ? parseInt(sel.value, 10) : NaN;
+  if (!studentId) {
+    alert('Please select a student first — this fills in their real parent name, month, and fee amount.');
+    return;
+  }
+  const students = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+  const student = students.find(s => s.id === studentId);
+  if (!student) return;
+
+  const monthKey = currentMonthKey();
+  const amountText = student.monthlyFee != null ? String(student.monthlyFee) : '[Amount]';
+  const text = `Bonjour ${student.parent},
+
+Gentle reminder — ${formatMonthLabel(monthKey)} fees for ${student.name}'s French tuition:
+
+Amount: ₹${amountText}
+Due by: [Date]
+UPI: [UPI ID]
+
+Merci beaucoup,
+Sailaja`;
+
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('✓ Fee reminder copied with real details!'))
+    .catch(() => showToast('Select and copy manually.'));
 }
 
 // ── Lessons, exams, quiz bank (Phase 3(d) — built on owner request 2026-07-21)
@@ -2543,7 +2733,7 @@ function renderQuiz() {
 // Export shape is versioned ({version, exportedAt, data}) so a future schema
 // change can add a migration step here instead of guessing at raw dumps.
 const BACKUP_VERSION = 1;
-const BACKUP_KEYS = [DB_KEY, SESSIONS_KEY, LESSONS_KEY, EXAMS_KEY, QUIZ_KEY];
+const BACKUP_KEYS = [DB_KEY, SESSIONS_KEY, LESSONS_KEY, EXAMS_KEY, QUIZ_KEY, PAYMENTS_KEY];
 const LAST_EXPORT_KEY = 'teach_os_last_export';
 const BACKUP_NUDGE_DAYS = 30;
 
@@ -2642,6 +2832,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderStudents();
   populateSessionStudentSelect();
   populateExamStudentSelect();
+  populatePaymentStudentSelect();
+  populateFeeReminderStudentSelect();
   renderLessons();
   renderExams();
   renderQuiz();

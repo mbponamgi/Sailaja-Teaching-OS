@@ -1,17 +1,18 @@
 ---
 name: sailaja-os-data-model-and-migrations
 description: >
-  Complete catalog of the Sailaja Teaching OS's persisted data model — seven
+  Complete catalog of the Sailaja Teaching OS's persisted data model — eight
   localStorage keys as of 2026-07-21: 'teach_os_students', 'teach_os_sessions',
-  'teach_os_lessons', 'teach_os_exams', 'teach_os_quiz' (all live), the
-  'teach_os_last_export' backup-freshness stamp, and the 'sailaja-dark'
-  preference — and the migration discipline protecting Sailaja's real
-  student roster now that the store is live. Load this skill when: adding,
-  renaming, or removing ANY field on a student, session, lesson, exam, or
-  quiz-question record; touching initDatabase(), renderStudents(),
-  addNewStudent(), saveStudentEdit(), deleteStudent(), the session
-  functions, addLesson()/addExam()/addQuizQuestion(), or
-  exportData()/handleRestoreFile(); reading or writing any of the seven
+  'teach_os_lessons', 'teach_os_exams', 'teach_os_quiz', 'teach_os_payments'
+  (all live), the 'teach_os_last_export' backup-freshness stamp, and the
+  'sailaja-dark' preference — and the migration discipline protecting
+  Sailaja's real student roster now that the store is live. Load this skill
+  when: adding, renaming, or removing ANY field on a student, session,
+  lesson, exam, quiz-question, or payment record; touching initDatabase(),
+  renderStudents(), addNewStudent(), saveStudentEdit(), deleteStudent(), the
+  session functions, addLesson()/addExam()/addQuizQuestion(),
+  logPayment()/renderViewStudentPayments(), or
+  exportData()/handleRestoreFile(); reading or writing any of the eight
   localStorage keys; writing or reviewing a data migration; authoring seed
   data or test fixtures; or interpreting stored contents. Also covers the
   DOM-scrape seeding pipeline (the static HTML table IS the seed fixture)
@@ -67,21 +68,23 @@ before citing, per "Provenance and maintenance").
 
 ## 1. Complete catalog of persisted state
 
-Seven localStorage keys as of 2026-07-21 (was two before that day's work —
+Eight localStorage keys as of 2026-07-21 (was two before that day's work —
 the persistence-layer fix added `teach_os_sessions`, Phase 3(d) afterward
-added `teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`, and Item 4 added
-`teach_os_last_export`). Nothing else persists (`tweaks-panel.js` contains
-no localStorage calls). localStorage is **per-origin**: `http://localhost:8000`
-and `http://localhost:8001` are different stores — a port change makes the
-app "forget" everything (triage for that → `sailaja-os-debugging-playbook`).
+added `teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`, Item 4 added
+`teach_os_last_export`, and Item 3 added `teach_os_payments`). Nothing else
+persists (`tweaks-panel.js` contains no localStorage calls). localStorage is
+**per-origin**: `http://localhost:8000` and `http://localhost:8001` are
+different stores — a port change makes the app "forget" everything (triage
+for that → `sailaja-os-debugging-playbook`).
 
 | Key | Status | Value | Written by | Read by |
 |---|---|---|---|---|
-| `teach_os_students` | **LIVE** since 2026-07-21 | JSON array of student records (schema below) | `initDatabase()`, `addNewStudent()`, `saveStudentEdit()`, `deleteStudent()` | `renderStudents()`, `viewStudent()`, `populateSessionStudentSelect()`, `populateExamStudentSelect()` |
+| `teach_os_students` | **LIVE** since 2026-07-21 | JSON array of student records (schema below) | `initDatabase()`, `addNewStudent()`, `saveStudentEdit()`, `deleteStudent()` | `renderStudents()`, `viewStudent()`, `populateSessionStudentSelect()`, `populateExamStudentSelect()`, `populatePaymentStudentSelect()`, `populateFeeReminderStudentSelect()` |
 | `teach_os_sessions` | **LIVE** since 2026-07-21 | JSON array of session records — also serves as the attendance record (a session with `studentId`+`date` IS attendance; no separate feature was built, per `sailaja-os-frontier-and-method` Item 1) | `logSession()`, `deleteStudent()` (cascade-removes a deleted student's sessions) | `getSessionsForStudent()`, `renderViewStudentSessions()` |
 | `teach_os_lessons` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of lesson-plan records (schema below) | `addLesson()` | `renderLessons()` |
 | `teach_os_exams` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of exam records (schema below) | `addExam()` | `renderExams()` |
 | `teach_os_quiz` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of quiz-question records (schema below) | `addQuizQuestion()` | `renderQuiz()` |
+| `teach_os_payments` | **LIVE** since 2026-07-21 (new, Item 3) | JSON array of payment records (schema below) | `logPayment()`, `deleteStudent()` (cascade-removes a deleted student's payments) | `getPaymentsForStudent()`, `isPaidForMonth()`, `renderViewStudentPayments()` |
 | `teach_os_last_export` | **LIVE** since 2026-07-21 (new, Item 4) | ISO-8601 timestamp string, e.g. `"2026-07-21T09:24:32.501Z"` | `exportData()`, on every successful backup download | `renderBackupStatus()`, `checkBackupNudge()` — **not** one of `BACKUP_KEYS`, so it is never itself included in or overwritten by a backup/restore round-trip |
 | `sailaja-dark` | **LIVE** (unchanged) | string `'1'` or `'0'` | `toggleDark()` | restore IIFE, runs before DOMContentLoaded |
 
@@ -118,6 +121,7 @@ sync the way the pre-fix code's two separate derivations could have:
 | `focus` | String | `"Board exam prep"` | Free text; default `'General'`. Escaped before render. |
 | `schedule` | String | `"Tue · 4:00 PM"` | Unchanged: `day.substring(0,3) + ' · ' + time`. Display-only — nothing parses it. Escaped before render. |
 | `progress` | String | `"55%"`, `"0%"` | **A string, not a number** (unchanged design). `renderStudents` does `parseInt(s.progress) || 0`. New students still get `'0%'`. **Now editable** — `saveStudentEdit()` writes whatever the profile modal's `#vs-progress` field holds; there's still no separate "progress" UI beyond the student-edit form, per the campaign's Phase 3(c) decision not to build one without Sailaja asking. |
+| `monthlyFee` | Number or `null` — **new field, 2026-07-21 (Item 3)** | `2500`, `null` | `null` means "no fee configured" — a deliberately distinct state from `0` (a free/waived-fee student), so `renderViewStudentPayments()` can show "No fee set" instead of a false "Due" status or a fabricated ₹0 due amount. Set via `#new-student-fee`/`#vs-fee` (both blank → `null`, never `0` by default). Read by `openPaymentModalFor()` to prefill the Record Payment amount, and by `copyFeeReminder()` to fill the Fee Reminder template's Amount blank. |
 
 There is no schema-version field, no wrapper object, no metadata — the
 stored value is still a bare JSON array of the records above (see the
@@ -146,6 +150,27 @@ A session record with `studentId` + `date` **is** the attendance record —
 no separate attendance feature exists or is planned (`sailaja-os-frontier-and-method`
 Item 1 rules this out explicitly; don't re-propose it without new owner
 direction).
+
+### Payment record schema (new, 2026-07-21, Item 3)
+
+One record per recorded payment, append-only (`payments.push`, no unshift —
+`getPaymentsForStudent()` sorts by month then paid-on date, descending, for
+display). Built on explicit owner sign-off obtained in-conversation
+("let us complete item 3"), per that item's hard gate:
+
+| Field | Type | Example | Notes |
+|---|---|---|---|
+| `id` | Number, integer | `1` | Same `nextId()` scheme as students/sessions, independent counter (its own array). |
+| `studentId` | Number | `16` | Foreign key into `teach_os_students`' `id`. `deleteStudent()` cascade-deletes every payment with a matching `studentId`, same pattern as sessions — there is no orphan-payment state reachable through the app's own UI. |
+| `month` | String (`YYYY-MM`) | `"2026-07"` | From the `<input type="month">` in the Record Payment modal — required, `logPayment()` alerts and refuses to save without it. A payment record with `studentId`+`month` **is** the paid/due fact for that month — no separate "invoice" or "status" field, matching the sessions-as-attendance design precedent (`sailaja-os-frontier-and-method` Item 1). `isPaidForMonth(id, monthKey)` just checks whether any payment record matches both. |
+| `amount` | Number, integer | `2500` | Required. Prefilled from the student's `monthlyFee` when opening the modal via "+ Record Payment", but editable per payment — a month with a partial or adjusted payment isn't forced to match the configured monthly fee. |
+| `paidOn` | String (`YYYY-MM-DD`) | `"2026-07-21"` | Defaults to today's date when the modal opens; editable for backdating a payment recorded late. |
+
+There is no `payments` field on the student record itself and no
+`monthlyFee` history — changing a student's `monthlyFee` via the profile
+edit form does not retroactively touch any already-recorded `amount`, by
+design (a payment is a fact about what was actually paid, not a computed
+function of the current fee setting).
 
 ### Lesson, exam, and quiz-question schemas (new, 2026-07-21, Phase 3(d))
 

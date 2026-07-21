@@ -69,15 +69,16 @@ species of failure: intention committed as fact, never checked in a browser.
    prototype" framing (`sailaja-os-change-control`) is itself an inference,
    not a sourced fact — flagged here so a future session doesn't upgrade the
    inference to a certainty by repetition.
-2. **Update, 2026-07-21: Items 2 and 4 shipped** (offline-complete vendoring,
+2. **Update, 2026-07-21: Items 2, 3, and 4 shipped** (offline-complete
+   vendoring, the fees & payments ledger built on explicit owner sign-off,
    backup automation), and so did Item 5's "Live counts" and "Real Recent
    Sessions" nice-to-haves (nav badges/stat cards/subtitles now read
    `teach_os_students` live; the 3 CBSE "Recent Sessions" cards render real
    `teach_os_sessions` data) — see `sailaja-os-frontier-and-method`. Still
-   genuinely not started, unaffected by the Incident 1/2 fix: Item 3 (fees
-   ledger, needs owner sign-off) and Item 5's one remaining sub-item, the
-   schedule-aware dashboard (needs a structured schedule data model that
-   doesn't exist yet — deliberately deferred, not forgotten).
+   genuinely not started, unaffected by the Incident 1/2 fix: Item 5's one
+   remaining sub-item, the schedule-aware dashboard (needs a structured
+   schedule data model that doesn't exist yet — deliberately deferred, not
+   forgotten).
 
 ---
 

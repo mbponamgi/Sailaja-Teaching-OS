@@ -9,17 +9,18 @@ description: >
   questions); testing the tweaks panel (vanilla JS since 2026-07-21, no
   React), offline-completeness (zero external requests, also since
   2026-07-21), the Backup & Restore export/import feature (also since
-  2026-07-21), or live nav-badge/subtitle/stat-card counts and the CBSE
-  Recent Sessions cards (also since 2026-07-21); or whenever "how do I test
-  this" comes up. Encodes the house rule (non-negotiable #1 in
-  sailaja-os-change-control): no change ships on "looks right" alone —
-  serve the app locally, drive the real UI with headless Playwright, and
-  print PASS/FAIL evidence. Ships eight working scripts (smoke test, store
-  dumper/seeder, student/session CRUD-and-reload regression, lesson/exam/quiz
-  CRUD-and-reload regression, tweaks-panel control-interaction regression,
-  offline-completeness regression, backup-export-restore round-trip
-  regression, live-counts-and-recent-sessions regression) plus the shared
-  plumbing they all use.
+  2026-07-21), live nav-badge/subtitle/stat-card counts and the CBSE Recent
+  Sessions cards (also since 2026-07-21), or the fees & payments ledger
+  (also since 2026-07-21); or whenever "how do I test this" comes up.
+  Encodes the house rule (non-negotiable #1 in sailaja-os-change-control):
+  no change ships on "looks right" alone — serve the app locally, drive the
+  real UI with headless Playwright, and print PASS/FAIL evidence. Ships
+  nine working scripts (smoke test, store dumper/seeder, student/session
+  CRUD-and-reload regression, lesson/exam/quiz CRUD-and-reload regression,
+  tweaks-panel control-interaction regression, offline-completeness
+  regression, backup-export-restore round-trip regression,
+  live-counts-and-recent-sessions regression, fees-ledger regression) plus
+  the shared plumbing they all use.
 ---
 
 # Sailaja OS Browser Verification
@@ -79,11 +80,16 @@ node .claude/skills/sailaja-os-browser-verification/scripts/verify-backup.mjs
 #    to any nav badge/subtitle/stat-card/CBSE-Recent-Sessions element:
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-live-counts.mjs
 
-# 8. Inspect or seed the persistent test-profile store (no app JS runs):
+# 8. After any change to logPayment()/renderViewStudentPayments()/
+#    copyFeeReminder(), monthlyFee, or the Fees section of the student
+#    profile:
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-fees.mjs
+
+# 9. Inspect or seed the persistent test-profile store (no app JS runs):
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs /path/to/seed.json
 
-# 9. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
+# 10. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
 #    structure into a throwaway verify-<change>.mjs (scratch dir, never
 #    committed) and adapt the DRIVE/ASSERT section — see "Writing a new
 #    verify script" below.
@@ -132,6 +138,7 @@ Same standard as the sibling FFOS repo (`ffos-browser-verification`), adapted:
 | `verify-offline.mjs` | Offline-completeness — the exact success metric `sailaja-os-frontier-and-method` Item 2 states: every non-localhost network route aborted, asserts 0 requests attempted, app still fully functional (students scraped, `addNewStudent` callable, tweaks panel mounts), fonts confirmed loaded via `document.fonts` | After any change to vendored assets (`vendor/fonts/`), `<head>` deps, or anything that could reintroduce an external request |
 | `verify-backup.mjs` | Item 4's stated success metric: export the seeded store, capture the real downloaded file, mutate the store (add a 16th student) AFTER the export, then restore from the file and assert the store snapshots back to exactly the pre-mutation state. Negative controls: a non-JSON file, a valid-JSON-wrong-shape file, and a dismissed confirm dialog each leave the store completely untouched; also asserts the on-load backup-staleness nudge toast fires when no export has ever happened | After any change to `exportData()`, `handleRestoreFile()`, `renderBackupStatus()`, `checkBackupNudge()`, or the Backup & Restore page |
 | `verify-live-counts.mjs` | Item 5's "Live counts" + "Real Recent Sessions" nice-to-haves: asserts nav badges/dashboard stat cards/page-subtitle counts/Students-page filter-bar counts (`sailaja-os-architecture-contract` W7) all read the real 15-student seed (catching that the old hardcoded "14" was already wrong); asserts the 3 CBSE "Recent Sessions" cards start honestly empty, then render a real logged session for their tracked student (`Aarav T.`) while the other two tracked cards and a session for an UNtracked student (`Rohan K.`) leave them unaffected (negative controls); drives add/edit-curriculum/delete through the real UI and asserts every wired count shifts correctly; **reloads** and re-asserts everything | After any change to `renderLiveCounts()`, `renderCBSERecentSessions()`, or any element they write to |
+| `verify-fees.mjs` | Item 3's fees & payments ledger: adds a student with a real `monthlyFee`, asserts "Due" status and an empty payment list before any payment, records a payment via the real UI, asserts the status flips to "Paid" and **survives a reload**; negative controls — a student with no `monthlyFee` reads "No fee set" (never a fabricated "Due" or invented amount); the Fee Reminder Copy button with no student selected leaves the clipboard untouched (checked against a pre-seeded marker string) and alerts instead; Copy for a fee-configured student fills in real parent name/month/amount with zero literal placeholders left; Copy for a no-fee student still fills real name/month but leaves `[Amount]` literal; deleting a student cascades their payment records and drops them from both student-select dropdowns; asserts the Backup & Restore export includes `teach_os_payments` (the cross-feature `BACKUP_KEYS` fix) | After any change to `logPayment()`, `renderViewStudentPayments()`, `copyFeeReminder()`, `monthlyFee`, or the Fees section of the student profile |
 | `dump-store.mjs` | Uses a **persistent** test-profile context (survives across separate runs) to read, and optionally seed, `teach_os_students` — navigates to a same-origin 404 page (`NO_APP_URL`) so **zero app script runs**, meaning it never triggers `initDatabase()`'s one-shot first-run scrape | Inspecting the store shape; seeding old- or new-shape data for a migration test; preparing fixture state before a behavior-change verify script drives the real UI |
 
 All three were run for real (`smoke.mjs`/`dump-store.mjs` authored
@@ -476,6 +483,60 @@ persistence-fix session. The hardcoded number was already wrong
 before this fix; `renderLiveCounts()` corrects it as a side effect of
 making it live, not as a separate fix.
 
+**`verify-fees.mjs`** (real run, 2026-07-21, `sailaja-os-frontier-and-method`
+Item 3's exact "you have a result when..." metric, achieved — built on
+explicit owner sign-off obtained in-conversation):
+
+```
+PASS  new student has the real monthlyFee stored  (actual: 2500)
+PASS  vs-fee prefilled with the real monthly fee  (actual: "2500")
+PASS  fee status before any payment: Due  (actual: "Due — July 2026")
+PASS  payments list before any payment  (actual: "No payments recorded yet.")
+PASS  payment modal preselects the right student  (actual: "16")
+PASS  payment modal prefills amount from monthlyFee  (actual: "2500")
+PASS  exactly 1 payment recorded  (actual: 1)
+PASS  payment studentId matches  (actual: 16)
+PASS  payment month matches the prefilled current month  (actual: "2026-07")
+PASS  payment amount matches  (actual: 2500)
+PASS  fee status after payment: Paid  (actual: "Paid — July 2026")
+PASS  payments list shows the real payment  (actual: "July 2026 — ₹2500 (paid 2026-07-21)")
+PASS  after reload: fee status still Paid  (actual: "Paid — July 2026")
+PASS  after reload: payment still listed  (actual: "July 2026 — ₹2500 (paid 2026-07-21)")
+PASS  student with no monthlyFee: fee status is "No fee set", not Due  (actual: "No fee set")
+PASS  student with no monthlyFee: no payments either  (actual: "No payments recorded yet.")
+PASS  Copy with no student selected leaves clipboard untouched  (actual: "unchanged-marker")
+PASS  fee reminder copy: real parent name present  (actual: true)
+PASS  fee reminder copy: real month present  (actual: true)
+PASS  fee reminder copy: real amount present  (actual: true)
+PASS  fee reminder copy: no literal [Parent Name] left  (actual: false)
+PASS  fee reminder copy: no literal [Month] left  (actual: false)
+PASS  fee reminder copy: no literal [Amount] left (real fee was configured)  (actual: false)
+PASS  fee reminder copy: [Date] stays a manual placeholder by design  (actual: true)
+PASS  no-fee student copy: real month still present  (actual: true)
+PASS  no-fee student copy: [Amount] stays literal, no invented number  (actual: true)
+PASS  after delete: cascade removed the payment record  (actual: 0)
+PASS  payment-student select dropped the deleted student  (actual: 16)
+PASS  fee-reminder-student select dropped the deleted student  (actual: 0)
+PASS  backup payload includes teach_os_payments key  (actual: true)
+PASS  no console errors across the whole run  (actual: [])
+PASS  no uncaught page errors across the whole run  (actual: [])
+
+PASS: 32/32 checks passed (http://localhost:8931/index.html)
+```
+
+**A real modal-stacking bug caught by this run**: the first version of the
+"+ Record Payment" button opened the add-payment modal without closing the
+view-student modal first, so the still-open view-student modal's content
+intercepted every click meant for the payment modal (Playwright's
+"element is not stable" retry loop, 30s timeout). Fixed by matching the
+existing "Log Session →" button's convention —
+`closeModal('view-student');openPaymentModalFor(...)` — closing the parent
+modal before opening the child one, the same pattern that button already
+used to avoid this exact problem. Two `.modal-bg` elements both carrying
+the `open` class is not a state the CSS/click-handling was ever designed
+to support: worth remembering for any future "open modal B from inside
+modal A" button.
+
 `dump-store.mjs` (fresh test profile, then seeded with the §6 fixture from
 `sailaja-os-data-model-and-migrations`, then re-run unseeded to confirm
 persistence — run pre-fix; the same-origin `NO_APP_URL` mechanism this
@@ -530,9 +591,13 @@ added), then Item 4 (backup automation) landed on top of that
 (`verify-backup.mjs` added, no changes needed to the other six scripts),
 then Item 5's live-counts/Recent-Sessions pass landed on top of that
 (`verify-live-counts.mjs` added, no changes needed to the other seven
-scripts) — all as working-tree changes at time of writing; confirm each has
-been committed before trusting its claims blindly. Re-verify the whole
-suite with:
+scripts), then Item 3 (fees & payments ledger, built on explicit owner
+sign-off) landed on top of that (`verify-fees.mjs` added; `BACKUP_KEYS`
+updated to include the new `teach_os_payments` key, so `verify-backup.mjs`'s
+claims about "the full store" now implicitly cover fees too even though its
+own assertions weren't rewritten) — all as working-tree changes at time of
+writing; confirm each has been committed before trusting its claims
+blindly. Re-verify the whole suite with:
 
 ```bash
 export PW_PATH=/Users/mponamgi/Documents/Personal-finance-tracker/node_modules
@@ -543,15 +608,16 @@ node .claude/skills/sailaja-os-browser-verification/scripts/verify-tweaks-panel.
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-offline.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-backup.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-live-counts.mjs
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-fees.mjs
 ```
 
-Expect `11/11`, `25/25`, `26/26`, `17/17`, `10/10`, `19/19`, `50/50` —
-everything green means persistence (students/sessions/edit-delete/
-reload-survival), Phase 3(d) content, the vanilla tweaks panel,
-offline-completeness, the backup/restore round-trip, and live counts + CBSE
-Recent Sessions are all intact. If any regress, re-read
-`sailaja-os-failure-archaeology` Incidents 1 and 2 before assuming you know
-the cause — both were counter-intuitive on first read.
+Expect `11/11`, `25/25`, `26/26`, `17/17`, `10/10`, `19/19`, `50/50`,
+`32/32` — everything green means persistence (students/sessions/
+edit-delete/reload-survival), Phase 3(d) content, the vanilla tweaks panel,
+offline-completeness, the backup/restore round-trip, live counts + CBSE
+Recent Sessions, and the fees ledger are all intact. If any regress,
+re-read `sailaja-os-failure-archaeology` Incidents 1 and 2 before assuming
+you know the cause — both were counter-intuitive on first read.
 
 - `PW_PATH` points at a sibling repo by absolute path — if
   `Personal-finance-tracker` moves or its `node_modules` is pruned, either

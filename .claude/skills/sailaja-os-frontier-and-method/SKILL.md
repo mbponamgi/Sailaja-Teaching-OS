@@ -59,12 +59,12 @@ verified by a 25-check real-browser add→session→edit→reload→delete
 regression (`sailaja-os-browser-verification`'s `verify-crud.mjs`). That
 work was owned and sequenced by `sailaja-os-daily-use-campaign`, whose phase
 statuses now reflect this; see Item 1 below for what shipped and what's
-still open within it. **Item 2 (offline-complete) and Item 4 (backup
-automation) are now also DONE** (2026-07-21 for both), as are Item 5's
-"Live counts" and "Real Recent Sessions" nice-to-haves (also 2026-07-21,
-scope explicitly narrowed to exclude the schedule-aware dashboard
-sub-item). Item 3 (fees ledger) remains CANDIDATE, gated on explicit owner
-sign-off.
+still open within it. **Item 2 (offline-complete), Item 3 (fees & payments
+ledger, built on explicit owner sign-off), and Item 4 (backup automation)
+are now also DONE** (all 2026-07-21), as are Item 5's "Live counts" and
+"Real Recent Sessions" nice-to-haves (also 2026-07-21, scope explicitly
+narrowed to exclude the schedule-aware dashboard sub-item). Only Item 5's
+schedule-aware-dashboard sub-item remains CANDIDATE/not-started.
 
 ---
 
@@ -86,11 +86,11 @@ unchanged as of 2026-07-20 and still describe real gaps:
 | Student edit/delete | Clicking a row opens "Student Profile" | **FIXED 2026-07-21.** Was a labeled placeholder ("Replace with actual data when setting up the real database") with no edit/delete path at all. Now a real form: edit any field, delete with confirm (cascades to that student's sessions). |
 | Progress updates | A progress bar on each row | **FIXED 2026-07-21** (folded into the edit path, per this item's Phase 3(c) decision below — no separate progress UI was built). Editable via the student profile's Progress field; still a free-text `"NN%"` string, unchanged format. |
 | Attendance | Implied by session history cards | Still no dedicated feature — **by design**, unchanged from the original plan: a session record (now real) with `studentId`+`date` IS the attendance record. **Partially fixed 2026-07-21**: the CBSE page's 3 "Recent Sessions" cards (the only curriculum pages that have one) now render real session data. The dashboard's "Upcoming Sessions" card is still hardcoded/fictional — deliberately out of scope, it's forward-looking schedule content (Item 5's schedule-aware-dashboard sub-item, not started). |
-| Fees | "Fee Reminder" card on the Parent Comms page | Unchanged. A copy-to-clipboard WhatsApp text template with fill-in blanks. No amounts, no ledger, no payment records — still needs an explicit owner yes before any work starts (Item 3, below). |
+| Fees | "Fee Reminder" card on the Parent Comms page | **DONE 2026-07-21** (Item 3, owner sign-off obtained in-conversation). Real per-student `monthlyFee`, a `teach_os_payments` ledger, a paid/due status on the student profile, and the Fee Reminder template now fills in real parent name/month/amount for a selected student. |
 | Schedule | "Weekly Master Schedule" table | Unchanged. Hardcoded static table; "+ Schedule Class" opens the now-functional add-session modal, but nothing populates the schedule table from real data yet. |
 | Exams / Lessons / Quiz bank | Add modals with Save buttons | Unchanged. Still toast-only `saveAndClose()` — explicitly out of this fix's scope (Item 5, "only if Sailaja actually asks"). |
 | Counts everywhere | "14 students", "9 classes this week" | **Partially fixed 2026-07-21**: nav badges, dashboard stat cards, page subtitles, and the Students-page filter-bar pills now read the store live (Item 5, "Live counts") — adding/editing/deleting a student updates all of them immediately. "9 classes this week · 3 exams coming up" is still a hardcoded string — that one needs a structured schedule data model (Item 5's schedule-aware-dashboard sub-item, not started). |
-| What actually persists | — | Now seven keys: `sailaja-dark` (unchanged), `teach_os_students`/`teach_os_sessions`/`teach_os_lessons`/`teach_os_exams`/`teach_os_quiz` (all live), `teach_os_last_export` (Item 4). Full schema → `sailaja-os-data-model-and-migrations`. |
+| What actually persists | — | Now eight keys: `sailaja-dark` (unchanged), `teach_os_students`/`teach_os_sessions`/`teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`/`teach_os_payments` (all live), `teach_os_last_export` (Item 4). Full schema → `sailaja-os-data-model-and-migrations`. |
 
 ## How to read the catalog
 
@@ -204,38 +204,69 @@ the React-removal decision specifically, since it was a real fork in the
 road, not just "vendor the CDN as-is"), browser-verification (`10/10`,
 `17/17` for the panel rewrite specifically).
 
-## Item 3 — Fees & payments ledger (CANDIDATE — pure greenfield)
+## Item 3 — Fees & payments ledger (DONE 2026-07-21)
 
-**Honest status: nothing exists.** Verified 2026-07-20: the only fee-related
-artifact in the app is the "Fee Reminder" WhatsApp copy-template (lines
-1382–1391). No amounts, no per-student fee field, no payment records, no
-ledger page. This item is invented from the domain (tuition = income), not
-from any existing surface — which is exactly why step 1 is asking.
+**Honest status before this work:** nothing existed. Verified 2026-07-20:
+the only fee-related artifact in the app was the "Fee Reminder" WhatsApp
+copy-template. No amounts, no per-student fee field, no payment records, no
+ledger. This item was invented from the domain (tuition = income), not from
+any existing surface — which is why step 1 was asking, and why this only
+started once the owner explicitly said "let us complete item 3."
 
-**Why it matters for daily use:** chasing monthly fees across 14 families is
+**Why it matters for daily use:** chasing monthly fees across 15 families is
 real recurring friction, and the data (student, month, amount, paid-on) is
 tiny and private — a natural fit for the local-first constraint.
 
-**First three steps in this repo:**
+**What actually happened, vs. the three steps originally planned — all
+three shipped as planned:**
 
-1. Ask the owner whether Sailaja actually wants fee tracking here (she may
-   have a working system; this is the only catalog item adding a new domain).
-   No owner yes → this item stays parked at CANDIDATE.
-2. If yes: schema via the data-model gate — e.g. `payments:
-   [{studentId, month, amount, paidOn}]` plus an optional per-student
-   `monthlyFee` — as an extension of Item 1's store (hard dependency: needs
-   real student ids, so Item 1 lands first).
-3. Smallest useful surface: a per-student paid/due line on the (by then real)
-   student profile, and wire the existing Fee Reminder template's
-   `[Parent Name]`/`[Month]`/`[Student]` blanks to fill from records.
+1. **Owner sign-off obtained** in-conversation ("let us complete item 3"),
+   satisfying the hard gate step 1 always required.
+2. **Schema shipped exactly as scoped**: a new `teach_os_payments` key,
+   `[{id, studentId, month, amount, paidOn}]` (month as `"YYYY-MM"`), plus
+   an optional `monthlyFee` field added to student records (`null` when
+   unset — distinct from "0", so "no fee configured" and "due amount ₹0"
+   never get confused). Extends Item 1's store; needed real student ids,
+   which Item 1 already provided. Full schema →
+   `sailaja-os-data-model-and-migrations`.
+3. **Smallest useful surface, built**: the student profile (view-student
+   modal) gained a Monthly Fee field, a computed paid/due badge for the
+   current month (`renderViewStudentPayments()`), a payment history list,
+   and a "Record Payment" button opening a small dedicated modal. The Fee
+   Reminder template's Copy button now requires picking a student from a
+   new dropdown and fills in her real parent name, the real current month,
+   and her real configured amount — `[Date]`/`[UPI ID]` stay manual
+   placeholders by design (not stored data, and legitimately hers to set
+   per reminder). A student with no `monthlyFee` configured shows "No fee
+   set" rather than a fabricated "Due" status or invented amount.
 
-**You have a result when…** record a payment for one student, reload: her
-status reads paid for that month, every other student still reads due, and
-the copied reminder text contains her actual parent name, month, and amount —
-all asserted by script against predicted strings.
+**Result, measured** (this IS "you have a result when..." — met exactly,
+plus negative controls the original milestone didn't specify): recording a
+payment for one student flips her status to "Paid — <month>" and survives a
+reload; a student who never got a monthly fee configured correctly reads
+"No fee set", not "Due"; the copied Fee Reminder text contains her real
+parent name/month/amount with zero literal `[Parent Name]`/`[Month]`
+placeholders left, while a student with no fee configured still gets a real
+name/month but an honest `[Amount]` placeholder rather than a made-up
+number; clicking Copy with no student selected touches the clipboard not at
+all (verified against a pre-seeded marker string); deleting a student
+cascades their payment records exactly like it already does for sessions.
+`sailaja-os-browser-verification`'s new `verify-fees.mjs`: **32/32 PASS**,
+zero console/page errors. Full existing suite (`smoke.mjs`, `verify-crud.mjs`,
+`verify-content-crud.mjs`, `verify-tweaks-panel.mjs`, `verify-offline.mjs`,
+`verify-backup.mjs`, `verify-live-counts.mjs`) re-run green — 190 checks
+total, no regressions.
 
-**Gates:** owner sign-off to even start, then data-model, change-control
-(c)+(d), browser-verification.
+**A cross-feature fix caught in the same pass**: `teach_os_payments` was
+added to Item 4's `BACKUP_KEYS`, so fee data is included in every backup —
+real financial-adjacent data left out of the backup/restore path would have
+been a silent gap. Verified: `verify-fees.mjs` downloads a real backup and
+asserts the payload includes the payments key.
+
+**Gates passed:** owner sign-off (obtained this session), data-model
+(`sailaja-os-data-model-and-migrations` updated with the payments schema),
+change-control (c)+(d), browser-verification (32/32, plus the full suite
+re-run).
 
 ## Item 4 — Backup automation (DONE 2026-07-21)
 
@@ -515,7 +546,7 @@ relying on volatile facts:
 - Student edit/delete now wired: `grep -n "function saveStudentEdit\|function deleteStudent" index.html` (expect hits — if empty, Item 1 has regressed)
 - Add-session modal now storage-backed: `grep -n "function logSession" index.html` (expect a hit)
 - `saveAndClose` still toast-only for add-lesson/add-exam/add-quiz (unchanged, out of scope): `grep -n "function saveAndClose" index.html`
-- No fees feature beyond the template (unchanged, Item 3 needs an owner yes first): `grep -ni "fee\|payment\|ledger" index.html`
+- Fees ledger present (Item 3 DONE 2026-07-21 — expect hits): `grep -n "function logPayment\|function renderViewStudentPayments\|PAYMENTS_KEY" index.html`
 - No separate attendance feature (unchanged — by design, see Item 1):
   `grep -ci attendance index.html` (expect 0)
 - Backup & Restore feature present (Item 4 DONE 2026-07-21 — expect hits): `grep -n "function exportData\|function handleRestoreFile" index.html`
@@ -526,6 +557,7 @@ relying on volatile facts:
 - Persistence layer alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-crud.mjs` (expect `25/25 PASS`)
 - Backup/restore round-trip alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-backup.mjs` (expect `19/19 PASS`)
 - Live counts + CBSE Recent Sessions alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-live-counts.mjs` (expect `50/50 PASS`)
+- Fees ledger alive end-to-end: `PW_PATH=<...> node .claude/skills/sailaja-os-browser-verification/scripts/verify-fees.mjs` (expect `32/32 PASS`)
 
 **Maintenance:** when an item ships or is retired, change its status here
 (CANDIDATE → SETTLED/RETIRED with a one-line outcome + pointer to the
