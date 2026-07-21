@@ -1087,7 +1087,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <div class="page-title"><em>Lesson</em> Plans</div>
       <div class="page-subtitle">All curricula · reusable templates</div>
     </div>
-    <button class="btn btn-primary" onclick="openModal('add-lesson')">+ New Lesson</button>
+    <button class="btn btn-primary" onclick="openAddLessonModal()">+ New Lesson</button>
   </div>
   <div class="filter-bar">
     <span class="filter-label">Filter</span>
@@ -1212,7 +1212,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <div class="page-title">Exams & <em>Assessments</em></div>
       <div class="page-subtitle">All curricula · upcoming + prep status</div>
     </div>
-    <button class="btn btn-primary" onclick="openModal('add-exam')">+ Add Exam</button>
+    <button class="btn btn-primary" onclick="openAddExamModal()">+ Add Exam</button>
   </div>
   <div class="card" style="margin-bottom:16px;">
     <div class="card-header"><span class="card-title">Upcoming — May / June 2026</span></div>
@@ -1228,7 +1228,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   </div>
   <div class="card" id="my-exams-card" style="margin-bottom:16px;display:none;">
     <div class="card-header"><span class="card-title">Logged Exams</span></div>
-    <table><thead><tr><th>Date</th><th>Student</th><th>Curriculum</th><th>Exam / Assessment</th><th>Prep Status</th></tr></thead>
+    <table><thead><tr><th>Date</th><th>Student</th><th>Curriculum</th><th>Exam / Assessment</th><th>Prep Status</th><th></th></tr></thead>
     <tbody id="dynamic-exams-list"></tbody></table>
   </div>
   <div class="grid-2">
@@ -1264,7 +1264,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <div class="page-title">Quiz <em>Bank</em></div>
       <div class="page-subtitle">All curricula · interactive practice questions</div>
     </div>
-    <button class="btn btn-primary" onclick="openModal('add-quiz')">+ New Question</button>
+    <button class="btn btn-primary" onclick="openAddQuizModal()">+ New Question</button>
   </div>
   <div class="filter-bar">
     <span class="filter-label">Filter</span>
@@ -1585,7 +1585,7 @@ Sailaja</div>
 <div class="modal-bg" id="modal-add-lesson">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('add-lesson')">✕</button>
-    <div class="modal-title">New Lesson Plan</div>
+    <div class="modal-title" id="lesson-modal-title">New Lesson Plan</div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Lesson Title</label><input id="lesson-title" class="form-control" type="text" placeholder="e.g. Passé composé — avoir verbs"></div>
       <div class="form-group"><label class="form-label">Curriculum</label><select id="lesson-curr" class="form-control"><option>A1/A2</option><option>CBSE</option><option>Cambridge</option><option>IBDP</option></select></div>
@@ -1599,7 +1599,7 @@ Sailaja</div>
     <div class="form-group"><label class="form-label">Homework</label><input id="lesson-homework" class="form-control" type="text" placeholder="e.g. Complete exercises + write 10 sentences"></div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-lesson')">Cancel</button>
-      <button class="btn btn-primary" onclick="addLesson()">Save</button>
+      <button class="btn btn-primary" id="lesson-save-btn" onclick="addLesson()">Save</button>
     </div>
   </div>
 </div>
@@ -1608,7 +1608,7 @@ Sailaja</div>
 <div class="modal-bg" id="modal-add-exam">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('add-exam')">✕</button>
-    <div class="modal-title">Add Exam / Assessment</div>
+    <div class="modal-title" id="exam-modal-title">Add Exam / Assessment</div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Student</label><select id="exam-student" class="form-control"><option value="all-cbse">All CBSE</option><option value="all-cambridge">All Cambridge</option><option value="all-ibdp">All IBDP</option></select></div>
       <div class="form-group"><label class="form-label">Exam Date</label><input id="exam-date" class="form-control" type="date"></div>
@@ -1621,7 +1621,7 @@ Sailaja</div>
     <div class="form-group"><label class="form-label">Notes</label><textarea id="exam-notes" class="form-control" placeholder="Topics to cover before exam, focus areas..."></textarea></div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-exam')">Cancel</button>
-      <button class="btn btn-primary" onclick="addExam()">Add Exam</button>
+      <button class="btn btn-primary" id="exam-save-btn" onclick="addExam()">Add Exam</button>
     </div>
   </div>
 </div>
@@ -1630,7 +1630,7 @@ Sailaja</div>
 <div class="modal-bg" id="modal-add-quiz">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('add-quiz')">✕</button>
-    <div class="modal-title">Add Quiz Question</div>
+    <div class="modal-title" id="quiz-modal-title">Add Quiz Question</div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Curriculum</label><select id="quiz-curr" class="form-control"><option>A1/A2</option><option>CBSE</option><option>Cambridge</option><option>IBDP</option></select></div>
       <div class="form-group"><label class="form-label">Category</label><select id="quiz-category" class="form-control"><option>Vocabulary</option><option>Grammar</option><option>Reading</option><option>Writing</option><option>Literary analysis</option></select></div>
@@ -1641,7 +1641,7 @@ Sailaja</div>
     <div class="form-group"><label class="form-label">Correct Answer</label><select id="quiz-correct" class="form-control"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal('add-quiz')">Cancel</button>
-      <button class="btn btn-primary" onclick="addQuizQuestion()">Add Question</button>
+      <button class="btn btn-primary" id="quiz-save-btn" onclick="addQuizQuestion()">Add Question</button>
     </div>
   </div>
 </div>
@@ -2633,21 +2633,72 @@ function badgeClassForCurr(curr) {
   return 'badge-a1';
 }
 
+// Lessons -- edit/delete added on top of Phase 3(d)'s add-only scope, on
+// explicit owner request ("add edit/delete for lessons/exams/quiz").
+// addLesson() stays the one Save handler for both add and edit (the modal
+// is shared, same as the exam/quiz modals below) rather than splitting
+// into an addNewStudent()/saveStudentEdit()-style pair -- that split earns
+// its keep for students (two very different forms); here it would just be
+// duplicated field-reading code. Only the dynamic "My Lesson Plans" list is
+// editable; the static curriculum lesson-bank cards are reference content
+// and untouched.
+let editingLessonId = null;
+
+function openAddLessonModal() {
+  editingLessonId = null;
+  document.getElementById('lesson-modal-title').textContent = 'New Lesson Plan';
+  document.getElementById('lesson-save-btn').textContent = 'Save';
+  document.getElementById('lesson-title').value = '';
+  document.getElementById('lesson-curr').value = 'A1/A2';
+  document.getElementById('lesson-level').value = '';
+  document.getElementById('lesson-duration').value = '45 minutes';
+  document.getElementById('lesson-objectives').value = '';
+  document.getElementById('lesson-activities').value = '';
+  document.getElementById('lesson-homework').value = '';
+  openModal('add-lesson');
+}
+
+function openEditLessonModal(id) {
+  const lessons = JSON.parse(localStorage.getItem(LESSONS_KEY)) || [];
+  const l = lessons.find(x => x.id === id);
+  if (!l) return;
+  editingLessonId = id;
+  document.getElementById('lesson-modal-title').textContent = 'Edit Lesson Plan';
+  document.getElementById('lesson-save-btn').textContent = 'Save Changes';
+  document.getElementById('lesson-title').value = l.title;
+  document.getElementById('lesson-curr').value = l.currLabel;
+  document.getElementById('lesson-level').value = l.level;
+  document.getElementById('lesson-duration').value = l.duration;
+  document.getElementById('lesson-objectives').value = l.objectives;
+  document.getElementById('lesson-activities').value = l.activities;
+  document.getElementById('lesson-homework').value = l.homework;
+  openModal('add-lesson');
+}
+
 function addLesson() {
   const title = document.getElementById('lesson-title').value.trim();
   if (!title) return alert('Please enter a lesson title.');
   const currLabel = document.getElementById('lesson-curr').value;
-  const lessons = JSON.parse(localStorage.getItem(LESSONS_KEY)) || [];
-  lessons.unshift({
-    id: nextId(lessons), title, curr: currKeyFromLabel(currLabel), currLabel,
+  const record = {
+    title, curr: currKeyFromLabel(currLabel), currLabel,
     level: document.getElementById('lesson-level').value,
     duration: document.getElementById('lesson-duration').value,
     objectives: document.getElementById('lesson-objectives').value,
     activities: document.getElementById('lesson-activities').value,
     homework: document.getElementById('lesson-homework').value,
-  });
+  };
+
+  const lessons = JSON.parse(localStorage.getItem(LESSONS_KEY)) || [];
+  const isEdit = editingLessonId != null;
+  if (isEdit) {
+    const idx = lessons.findIndex(x => x.id === editingLessonId);
+    if (idx !== -1) lessons[idx] = { ...lessons[idx], ...record };
+  } else {
+    lessons.unshift({ id: nextId(lessons), ...record });
+  }
   localStorage.setItem(LESSONS_KEY, JSON.stringify(lessons));
   renderLessons();
+  editingLessonId = null;
 
   document.getElementById('lesson-title').value = '';
   document.getElementById('lesson-level').value = '';
@@ -2655,7 +2706,16 @@ function addLesson() {
   document.getElementById('lesson-activities').value = '';
   document.getElementById('lesson-homework').value = '';
 
-  saveAndClose('add-lesson', 'Lesson plan saved!');
+  saveAndClose('add-lesson', isEdit ? 'Lesson plan updated!' : 'Lesson plan saved!');
+}
+
+function deleteLesson(id) {
+  if (!confirm('Delete this lesson plan? This cannot be undone.')) return;
+  let lessons = JSON.parse(localStorage.getItem(LESSONS_KEY)) || [];
+  lessons = lessons.filter(x => x.id !== id);
+  localStorage.setItem(LESSONS_KEY, JSON.stringify(lessons));
+  renderLessons();
+  showToast('✓ Lesson plan deleted.');
 }
 
 function renderLessons() {
@@ -2670,6 +2730,10 @@ function renderLessons() {
       <div class="lesson-info">
         <div class="lesson-title">${esc(l.title)}</div>
         <div class="lesson-meta">${esc(l.duration)} · ${esc(l.currLabel)}${l.level ? ' · ' + esc(l.level) : ''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openEditLessonModal(${l.id})">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deleteLesson(${l.id})">Delete</button>
       </div>
     </div>
   `).join('');
@@ -2701,30 +2765,81 @@ function prepBadgeClass(status) {
   return 'badge-needs';
 }
 
+let editingExamId = null;
+
+function openAddExamModal() {
+  editingExamId = null;
+  document.getElementById('exam-modal-title').textContent = 'Add Exam / Assessment';
+  document.getElementById('exam-save-btn').textContent = 'Add Exam';
+  populateExamStudentSelect();
+  document.getElementById('exam-student').value = 'all-cbse';
+  document.getElementById('exam-date').value = '';
+  document.getElementById('exam-name').value = '';
+  document.getElementById('exam-curriculum').value = 'CBSE';
+  document.getElementById('exam-prep').value = 'Not started';
+  document.getElementById('exam-notes').value = '';
+  openModal('add-exam');
+}
+
+function openEditExamModal(id) {
+  const exams = JSON.parse(localStorage.getItem(EXAMS_KEY)) || [];
+  const e = exams.find(x => x.id === id);
+  if (!e) return;
+  editingExamId = id;
+  document.getElementById('exam-modal-title').textContent = 'Edit Exam / Assessment';
+  document.getElementById('exam-save-btn').textContent = 'Save Changes';
+  populateExamStudentSelect();
+  document.getElementById('exam-student').value = e.studentValue;
+  document.getElementById('exam-date').value = e.examDate;
+  document.getElementById('exam-name').value = e.examName;
+  document.getElementById('exam-curriculum').value = e.curriculum;
+  document.getElementById('exam-prep').value = e.prepStatus;
+  document.getElementById('exam-notes').value = e.notes;
+  openModal('add-exam');
+}
+
 function addExam() {
   const examName = document.getElementById('exam-name').value.trim();
   if (!examName) return alert('Please enter an exam name.');
   const examDate = document.getElementById('exam-date').value;
   if (!examDate) return alert('Please pick an exam date.');
   const studentValue = document.getElementById('exam-student').value;
-
-  const exams = JSON.parse(localStorage.getItem(EXAMS_KEY)) || [];
-  exams.push({
-    id: nextId(exams), studentValue, studentLabel: examStudentLabel(studentValue),
+  const record = {
+    studentValue, studentLabel: examStudentLabel(studentValue),
     examName, examDate,
     curriculum: document.getElementById('exam-curriculum').value,
     prepStatus: document.getElementById('exam-prep').value,
     notes: document.getElementById('exam-notes').value,
-  });
+  };
+
+  const exams = JSON.parse(localStorage.getItem(EXAMS_KEY)) || [];
+  const isEdit = editingExamId != null;
+  if (isEdit) {
+    const idx = exams.findIndex(x => x.id === editingExamId);
+    if (idx !== -1) exams[idx] = { ...exams[idx], ...record };
+  } else {
+    exams.push({ id: nextId(exams), ...record });
+  }
   localStorage.setItem(EXAMS_KEY, JSON.stringify(exams));
   renderExams();
   renderScheduleAwareDashboard();
+  editingExamId = null;
 
   document.getElementById('exam-name').value = '';
   document.getElementById('exam-date').value = '';
   document.getElementById('exam-notes').value = '';
 
-  saveAndClose('add-exam', 'Exam added!');
+  saveAndClose('add-exam', isEdit ? 'Exam updated!' : 'Exam added!');
+}
+
+function deleteExam(id) {
+  if (!confirm('Delete this exam? This cannot be undone.')) return;
+  let exams = JSON.parse(localStorage.getItem(EXAMS_KEY)) || [];
+  exams = exams.filter(x => x.id !== id);
+  localStorage.setItem(EXAMS_KEY, JSON.stringify(exams));
+  renderExams();
+  renderScheduleAwareDashboard();
+  showToast('✓ Exam deleted.');
 }
 
 function renderExams() {
@@ -2742,8 +2857,47 @@ function renderExams() {
         <td><span class="badge badge-primary">${esc(e.curriculum)}</span></td>
         <td>${esc(e.examName)}</td>
         <td><span class="badge ${prepBadgeClass(e.prepStatus)}">${esc(e.prepStatus)}</span></td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-ghost btn-sm" onclick="openEditExamModal(${e.id})">Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteExam(${e.id})">Delete</button>
+        </td>
       </tr>
     `).join('');
+}
+
+let editingQuizId = null;
+
+function openAddQuizModal() {
+  editingQuizId = null;
+  document.getElementById('quiz-modal-title').textContent = 'Add Quiz Question';
+  document.getElementById('quiz-save-btn').textContent = 'Add Question';
+  document.getElementById('quiz-curr').value = 'A1/A2';
+  document.getElementById('quiz-category').value = 'Vocabulary';
+  document.getElementById('quiz-question').value = '';
+  document.getElementById('quiz-opt-a').value = '';
+  document.getElementById('quiz-opt-b').value = '';
+  document.getElementById('quiz-opt-c').value = '';
+  document.getElementById('quiz-opt-d').value = '';
+  document.getElementById('quiz-correct').value = 'A';
+  openModal('add-quiz');
+}
+
+function openEditQuizModal(id) {
+  const quiz = JSON.parse(localStorage.getItem(QUIZ_KEY)) || [];
+  const q = quiz.find(x => x.id === id);
+  if (!q) return;
+  editingQuizId = id;
+  document.getElementById('quiz-modal-title').textContent = 'Edit Quiz Question';
+  document.getElementById('quiz-save-btn').textContent = 'Save Changes';
+  document.getElementById('quiz-curr').value = q.currLabel;
+  document.getElementById('quiz-category').value = q.category;
+  document.getElementById('quiz-question').value = q.question;
+  document.getElementById('quiz-opt-a').value = q.optA;
+  document.getElementById('quiz-opt-b').value = q.optB;
+  document.getElementById('quiz-opt-c').value = q.optC;
+  document.getElementById('quiz-opt-d').value = q.optD;
+  document.getElementById('quiz-correct').value = q.correct;
+  openModal('add-quiz');
 }
 
 function addQuizQuestion() {
@@ -2755,16 +2909,24 @@ function addQuizQuestion() {
   const optD = document.getElementById('quiz-opt-d').value.trim();
   if (!optA || !optB || !optC || !optD) return alert('Please fill in all four options.');
   const currLabel = document.getElementById('quiz-curr').value;
-
-  const quiz = JSON.parse(localStorage.getItem(QUIZ_KEY)) || [];
-  quiz.push({
-    id: nextId(quiz), curr: currKeyFromLabel(currLabel), currLabel,
+  const record = {
+    curr: currKeyFromLabel(currLabel), currLabel,
     category: document.getElementById('quiz-category').value,
     question, optA, optB, optC, optD,
     correct: document.getElementById('quiz-correct').value,
-  });
+  };
+
+  const quiz = JSON.parse(localStorage.getItem(QUIZ_KEY)) || [];
+  const isEdit = editingQuizId != null;
+  if (isEdit) {
+    const idx = quiz.findIndex(x => x.id === editingQuizId);
+    if (idx !== -1) quiz[idx] = { ...quiz[idx], ...record };
+  } else {
+    quiz.push({ id: nextId(quiz), ...record });
+  }
   localStorage.setItem(QUIZ_KEY, JSON.stringify(quiz));
   renderQuiz();
+  editingQuizId = null;
 
   document.getElementById('quiz-question').value = '';
   document.getElementById('quiz-opt-a').value = '';
@@ -2772,7 +2934,16 @@ function addQuizQuestion() {
   document.getElementById('quiz-opt-c').value = '';
   document.getElementById('quiz-opt-d').value = '';
 
-  saveAndClose('add-quiz', 'Question added!');
+  saveAndClose('add-quiz', isEdit ? 'Question updated!' : 'Question added!');
+}
+
+function deleteQuizQuestion(id) {
+  if (!confirm('Delete this quiz question? This cannot be undone.')) return;
+  let quiz = JSON.parse(localStorage.getItem(QUIZ_KEY)) || [];
+  quiz = quiz.filter(x => x.id !== id);
+  localStorage.setItem(QUIZ_KEY, JSON.stringify(quiz));
+  renderQuiz();
+  showToast('✓ Question deleted.');
 }
 
 function renderQuiz() {
@@ -2792,6 +2963,10 @@ function renderQuiz() {
         </div>
         <div class="quiz-q">${5 + i}. ${esc(q.question)}</div>
         <div class="quiz-options">${optsHtml}</div>
+        <div style="display:flex;gap:6px;margin-top:10px;">
+          <button class="btn btn-ghost btn-sm" onclick="openEditQuizModal(${q.id})">Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteQuizQuestion(${q.id})">Delete</button>
+        </div>
       </div>
     `;
   }).join('');

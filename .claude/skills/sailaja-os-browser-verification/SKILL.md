@@ -11,19 +11,22 @@ description: >
   2026-07-21), the Backup & Restore export/import feature (also since
   2026-07-21), live nav-badge/subtitle/stat-card counts and the CBSE Recent
   Sessions cards (also since 2026-07-21), the fees & payments ledger (also
-  since 2026-07-21), or the schedule-aware dashboard (also since
-  2026-07-21 — the "This Week" stat, the subgreeting's class/exam counts,
-  and the "Upcoming Sessions" card); or whenever "how do I test this" comes
-  up. Encodes the house rule (non-negotiable #1 in sailaja-os-change-control):
-  no change ships on "looks right" alone — serve the app locally, drive the
-  real UI with headless Playwright, and print PASS/FAIL evidence. Ships ten
-  working scripts (smoke test, store dumper/seeder, student/session
-  CRUD-and-reload regression, lesson/exam/quiz CRUD-and-reload regression,
-  tweaks-panel control-interaction regression, offline-completeness
-  regression, backup-export-restore round-trip regression,
-  live-counts-and-recent-sessions regression, fees-ledger regression,
-  schedule-aware-dashboard regression) plus the shared plumbing they all
-  use.
+  since 2026-07-21), the schedule-aware dashboard (also since 2026-07-21 —
+  the "This Week" stat, the subgreeting's class/exam counts, and the
+  "Upcoming Sessions" card), or lesson/exam/quiz edit and delete (also
+  since 2026-07-21 — Phase 3(d) was add-only at first, edit/delete added
+  same day on explicit owner request); or whenever "how do I test this"
+  comes up. Encodes the house rule (non-negotiable #1 in
+  sailaja-os-change-control): no change ships on "looks right" alone —
+  serve the app locally, drive the real UI with headless Playwright, and
+  print PASS/FAIL evidence. Ships eleven working scripts (smoke test, store
+  dumper/seeder, student/session CRUD-and-reload regression, lesson/exam/quiz
+  add CRUD-and-reload regression, lesson/exam/quiz edit-and-delete
+  regression, tweaks-panel control-interaction regression,
+  offline-completeness regression, backup-export-restore round-trip
+  regression, live-counts-and-recent-sessions regression, fees-ledger
+  regression, schedule-aware-dashboard regression) plus the shared plumbing
+  they all use.
 ---
 
 # Sailaja OS Browser Verification
@@ -93,11 +96,17 @@ node .claude/skills/sailaja-os-browser-verification/scripts/verify-fees.mjs
 #    dashboard's This Week/subgreeting/Upcoming Sessions elements:
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-schedule.mjs
 
-# 10. Inspect or seed the persistent test-profile store (no app JS runs):
+# 10. After any change to openEditLessonModal()/deleteLesson(),
+#     openEditExamModal()/deleteExam(), openEditQuizModal()/
+#     deleteQuizQuestion(), or the add/edit shared-modal state
+#     (editingLessonId/editingExamId/editingQuizId):
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-content-edit-delete.mjs
+
+# 11. Inspect or seed the persistent test-profile store (no app JS runs):
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/dump-store.mjs /path/to/seed.json
 
-# 11. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
+# 12. For a new behavior change, copy smoke.mjs's or verify-crud.mjs's
 #    structure into a throwaway verify-<change>.mjs (scratch dir, never
 #    committed) and adapt the DRIVE/ASSERT section — see "Writing a new
 #    verify script" below.
@@ -142,6 +151,7 @@ Same standard as the sibling FFOS repo (`ffos-browser-verification`), adapted:
 | `smoke.mjs` | Boots the app in a **throwaway** context, asserts sidebar renders, dashboard is the default active page, `initDatabase()` scrapes exactly 15 students, `addNewStudent` is a real function, `teach_os_students` is written, the tweaks panel renders once activated via `postMessage`, `toggleDark()` flips `sailaja-dark`, zero console/page errors/failed requests | After every change; the minimum bar |
 | `verify-crud.mjs` | The daily-use-campaign's stated success metric, executable: add a student via the real form → log a session for them via the row's "Log" button → edit their name via the profile modal → **reload the page** → delete them (cascade-removes their session). Asserts exact counts and field values at every step, including post-reload. Negative controls: dark mode, `filterStudents`, zero console/page errors throughout | After any change touching students, sessions, or the view-student/add-session modals — this is the one that actually proves persistence, not just that a function exists |
 | `verify-content-crud.mjs` | Phase 3(d)'s regression: add a lesson, an exam (linked to a real student), and a quiz question via their real forms, asserts each new store (`teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`) went 0→1 with correct derived fields, the "hidden until non-empty" cards become visible, the dynamic quiz card's `answerQuiz()` click reports correctly, **reloads**, and re-asserts all three. Negative controls: the 4 static quiz cards stay exactly 4, `addNewStudent`/`logSession` unaffected | After any change touching lessons, exams, or quiz questions |
+| `verify-content-edit-delete.mjs` | Edit/delete added on top of Phase 3(d) (explicit owner request, same day): for each of lessons/exams/quiz — add, open Edit (asserts every field prefilled + modal title/button relabeled), Cancel (asserts NO change persisted), "+ New ..." again (asserts a genuinely new second record, not a leaked overwrite — the shared add/edit modal's `editingXId` state doesn't survive a cancel), a real edit saved in place (same id, array length unchanged), **reload** (edit survives), delete, **reload** (deletion survives). For quiz specifically also re-clicks the now-edited correct option and asserts it reports Correct, not the old answer. Negative controls throughout: the static lesson-bank cards, the static exam calendar table, and the 4 static quiz cards are never touched | After any change to `openEditLessonModal()`/`deleteLesson()`, `openEditExamModal()`/`deleteExam()`, `openEditQuizModal()`/`deleteQuizQuestion()`, or the `addLesson()`/`addExam()`/`addQuizQuestion()` add-vs-edit branching |
 | `verify-tweaks-panel.mjs` | Interaction regression for the vanilla (no React) tweaks panel rewrite (2026-07-21): activates the panel, drives every control type — toggle, slider, color, text, radio — and asserts each one's real side effect (CSS var change, `.sidebar` width, `.student-parent` visibility, dashboard greeting text), then closes it and asserts DOM cleanup + the `__edit_mode_dismissed` postMessage | After any change to `tweaks-panel.js` or to `mountTweaks()`'s composition in `index.html` |
 | `verify-offline.mjs` | Offline-completeness — the exact success metric `sailaja-os-frontier-and-method` Item 2 states: every non-localhost network route aborted, asserts 0 requests attempted, app still fully functional (students scraped, `addNewStudent` callable, tweaks panel mounts), fonts confirmed loaded via `document.fonts` | After any change to vendored assets (`vendor/fonts/`), `<head>` deps, or anything that could reintroduce an external request |
 | `verify-backup.mjs` | Item 4's stated success metric: export the seeded store, capture the real downloaded file, mutate the store (add a 16th student) AFTER the export, then restore from the file and assert the store snapshots back to exactly the pre-mutation state. Negative controls: a non-JSON file, a valid-JSON-wrong-shape file, and a dismissed confirm dialog each leave the store completely untouched; also asserts the on-load backup-staleness nudge toast fires when no export has ever happened | After any change to `exportData()`, `handleRestoreFile()`, `renderBackupStatus()`, `checkBackupNudge()`, or the Backup & Restore page |
@@ -590,6 +600,88 @@ identical contents — `check('...', arrA, arrB)` silently fails even when
 (JSON-stringify equality). Worth remembering for any future verify script
 asserting an ordered list.
 
+**`verify-content-edit-delete.mjs`** (real run, 2026-07-21, edit/delete
+added to lessons/exams/quiz on explicit owner request, right after
+schedule-aware dashboard shipped — the same session closed out every
+remaining item on the roadmap plus this):
+
+```
+PASS  lesson A created  (actual: 1)
+PASS  edit modal title relabeled  (actual: "Edit Lesson Plan")
+PASS  edit modal button relabeled  (actual: "Save Changes")
+PASS  lesson-title prefilled  (actual: "Edit-Delete Lesson A")
+PASS  lesson-curr prefilled  (actual: "Cambridge")
+PASS  lesson-level prefilled  (actual: "Grade 9")
+PASS  lesson-objectives prefilled  (actual: "Original objectives.")
+PASS  cancelled edit did not change the title  (actual: "Edit-Delete Lesson A")
+PASS  cancelled edit did not add a record  (actual: 1)
+PASS  title field reset for a fresh add  (actual: "")
+PASS  add modal title relabeled back  (actual: "New Lesson Plan")
+PASS  lesson B is a genuinely new second record (editingLessonId did not leak)  (actual: 2)
+PASS  lesson A untouched by adding B  (actual: "Edit-Delete Lesson A")
+PASS  edit updated the record IN PLACE (still 2 records)  (actual: 2)
+PASS  lesson A id unchanged after edit  (actual: 1)
+PASS  lesson A title updated  (actual: "Edit-Delete Lesson A (edited)")
+PASS  lesson A duration updated  (actual: "90 minutes")
+PASS  rendered list shows the edited title  (actual: true)
+PASS  after reload: edit survived  (actual: "Edit-Delete Lesson A (edited)")
+PASS  after reload: still 2 lessons  (actual: 2)
+PASS  lesson A deleted, B remains  (actual: 1)
+PASS  remaining lesson is B  (actual: "Edit-Delete Lesson B")
+PASS  after reload: both lessons gone  (actual: 0)
+PASS  lessons card hidden again  (actual: false)
+PASS  static lesson-bank cards unaffected by the whole lesson add/edit/delete cycle  (actual: 30)
+PASS  exam created  (actual: 1)
+PASS  exam edit modal title relabeled  (actual: "Edit Exam / Assessment")
+PASS  exam edit modal button relabeled  (actual: "Save Changes")
+PASS  exam-student prefilled  (actual: "1")
+PASS  exam-date prefilled  (actual: "2026-09-01")
+PASS  exam-name prefilled  (actual: "Edit-Delete Exam")
+PASS  exam-prep prefilled  (actual: "Not started")
+PASS  cancelled exam edit did not change the name  (actual: "Edit-Delete Exam")
+PASS  exam edited in place (still 1 record)  (actual: 1)
+PASS  exam id unchanged after edit  (actual: 1)
+PASS  exam reassigned to the real second student  (actual: "Diya R.")
+PASS  exam prep status updated  (actual: "On track / Ready")
+PASS  rendered exam row shows the new student and status  (actual: true)
+PASS  after reload: exam edit survived  (actual: "Diya R.")
+PASS  after reload: exam deleted  (actual: 0)
+PASS  exams card hidden again  (actual: false)
+PASS  static IB Assessment Calendar unaffected by the whole exam add/edit/delete cycle  (actual: 7)
+PASS  4 static quiz cards before this cycle  (actual: 4)
+PASS  quiz question created  (actual: 1)
+PASS  quiz edit modal title relabeled  (actual: "Edit Quiz Question")
+PASS  quiz edit modal button relabeled  (actual: "Save Changes")
+PASS  quiz-question prefilled  (actual: "Edit-Delete Q: \"chien\" means?")
+PASS  quiz-opt-b prefilled  (actual: "Dog")
+PASS  quiz-correct prefilled  (actual: "B")
+PASS  cancelled quiz edit did not change the question  (actual: "Edit-Delete Q: \"chien\" means?")
+PASS  quiz edited in place (still 1 record)  (actual: 1)
+PASS  quiz id unchanged after edit  (actual: 1)
+PASS  quiz correct answer updated to C  (actual: "C")
+PASS  static quiz cards still exactly 4 after editing the dynamic one  (actual: 4)
+PASS  quiz-opt click follows the EDITED correct answer, not the original  (actual: "✓ Correct! Très bien!")
+PASS  after reload: quiz edit survived  (actual: "C")
+PASS  after reload: quiz question deleted  (actual: 0)
+PASS  dynamic quiz list empty again  (actual: 0)
+PASS  static quiz cards unaffected by the whole quiz add/edit/delete cycle  (actual: 4)
+PASS  addNewStudent still a function (Phase 1-3 untouched)  (actual: "function")
+PASS  logPayment still a function (Item 3 untouched)  (actual: "function")
+PASS  no console errors across the whole run  (actual: [])
+PASS  no uncaught page errors across the whole run  (actual: [])
+
+PASS: 63/63 checks passed (http://localhost:8931/index.html)
+```
+
+**Design decision this run validates**: all three entities reuse their
+existing add modal for editing (one shared save handler branching on a
+module-level `editingXId`, reset by "+ New ..." and set by
+`openEditXModal(id)`) rather than a separate saveXEdit()-style function
+pair like students have. The riskiest part of that design is state leaking
+between a cancelled edit and the next add — the "lesson B is a genuinely
+new second record" checks above exist specifically to prove that risk
+didn't materialize.
+
 `dump-store.mjs` (fresh test profile, then seeded with the §6 fixture from
 `sailaja-os-data-model-and-migrations`, then re-run unseeded to confirm
 persistence — run pre-fix; the same-origin `NO_APP_URL` mechanism this
@@ -649,10 +741,15 @@ sign-off) landed on top of that (`verify-fees.mjs` added; `BACKUP_KEYS`
 updated to include the new `teach_os_payments` key, so `verify-backup.mjs`'s
 claims about "the full store" now implicitly cover fees too even though its
 own assertions weren't rewritten), then Item 5's schedule-aware-dashboard
-sub-item (its last piece) landed on top of that (`verify-schedule.mjs`
-added, no changes needed to the other nine scripts) — all as working-tree
-changes at time of writing; confirm each has been committed before
-trusting its claims blindly. Re-verify the whole suite with:
+sub-item (its last piece, closing out the entire roadmap) landed on top of
+that (`verify-schedule.mjs` added, no changes needed to the other nine
+scripts), then edit/delete for lessons/exams/quiz landed on top of THAT,
+on explicit owner request after the roadmap was already fully done
+(`verify-content-edit-delete.mjs` added, no changes needed to
+`verify-content-crud.mjs` — the add flows it tests were untouched by the
+edit/delete work) — all as working-tree changes at time of writing;
+confirm each has been committed before trusting its claims blindly.
+Re-verify the whole suite with:
 
 ```bash
 export PW_PATH=/Users/mponamgi/Documents/Personal-finance-tracker/node_modules
@@ -665,18 +762,20 @@ node .claude/skills/sailaja-os-browser-verification/scripts/verify-backup.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-live-counts.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-fees.mjs
 node .claude/skills/sailaja-os-browser-verification/scripts/verify-schedule.mjs
+node .claude/skills/sailaja-os-browser-verification/scripts/verify-content-edit-delete.mjs
 ```
 
 Expect `11/11`, `25/25`, `26/26`, `17/17`, `10/10`, `19/19`, `50/50`,
-`32/32`, `16/16` — everything green means persistence (students/sessions/
-edit-delete/reload-survival), Phase 3(d) content, the vanilla tweaks panel,
-offline-completeness, the backup/restore round-trip, live counts + CBSE
-Recent Sessions, the fees ledger, and the schedule-aware dashboard are all
-intact. (`verify-schedule.mjs`'s exact expected numbers depend on the real
-weekday it's run on — see its own PREDICTIONS comment — but `16/16 PASS`
-should hold regardless of day.) If any regress, re-read
-`sailaja-os-failure-archaeology` Incidents 1 and 2 before assuming you know
-the cause — both were counter-intuitive on first read.
+`32/32`, `16/16`, `63/63` — everything green means persistence (students/
+sessions/edit-delete/reload-survival), Phase 3(d) content (both add and
+edit/delete), the vanilla tweaks panel, offline-completeness, the
+backup/restore round-trip, live counts + CBSE Recent Sessions, the fees
+ledger, and the schedule-aware dashboard are all intact. (`verify-schedule.mjs`'s
+exact expected numbers depend on the real weekday it's run on — see its
+own PREDICTIONS comment — but `16/16 PASS` should hold regardless of day.)
+If any regress, re-read `sailaja-os-failure-archaeology` Incidents 1 and 2
+before assuming you know the cause — both were counter-intuitive on first
+read.
 
 - `PW_PATH` points at a sibling repo by absolute path — if
   `Personal-finance-tracker` moves or its `node_modules` is pruned, either

@@ -250,18 +250,40 @@ built on explicit owner request.** add-lesson, add-exam, and add-quiz all
 got real `id`s and real save handlers (`addLesson()`, `addExam()`,
 `addQuizQuestion()`), writing to three new keys
 (`teach_os_lessons`/`teach_os_exams`/`teach_os_quiz`) and rendering into
-new "hidden until non-empty" cards on their respective pages. **Deliberately
-smaller in scope than (a)/(b)**: add-and-persist only, no edit/delete path
-for any of the three — that was a scope call, not an oversight, kept the
-diff proportionate to what was actually asked for. The exam form's student
-select is now dynamic (real students + the three bulk "All CBSE" etc.
-options); a chosen student's name is snapshotted into the exam record at
-save time, not re-resolved live (documented tradeoff, not a bug — see
+new "hidden until non-empty" cards on their respective pages. **Was
+deliberately smaller in scope than (a)/(b) at first**: add-and-persist
+only, no edit/delete path for any of the three — a scope call, not an
+oversight, kept the diff proportionate to what was actually asked for at
+the time. The exam form's student select is now dynamic (real students +
+the three bulk "All CBSE" etc. options); a chosen student's name is
+snapshotted into the exam record at save time, not re-resolved live
+(documented tradeoff, not a bug — see
 `sailaja-os-data-model-and-migrations`'s exam schema section). Quiz
 questions render as real `.quiz-card`s reusing the existing `answerQuiz()`
 handler unchanged. **Acceptance confirmed**: added one of each, reloaded,
 all three counts and all three cards/lists survived —
 `sailaja-os-browser-verification`'s `verify-content-crud.mjs`, 26/26 PASS.
+
+**Update, 2026-07-21 (same day, later): edit/delete added** on explicit
+owner request ("add edit/delete for lessons/exams/quiz"), closing the gap
+noted above. All three reuse their existing add modal for editing — one
+shared save handler (`addLesson()`/`addExam()`/`addQuizQuestion()`, kept
+their original names deliberately, to avoid renaming churn across every
+skill doc that references them) branching on a new module-level
+`editingLessonId`/`editingExamId`/`editingQuizId`, reset to `null` by each
+modal's "+ New ..." button and set by a new
+`openEditLessonModal(id)`/`openEditExamModal(id)`/`openEditQuizModal(id)`.
+Delete is `confirm()`-gated (`deleteLesson()`/`deleteExam()`/
+`deleteQuizQuestion()`), matching the existing student/session/payment
+cascade-delete pattern's confirm discipline, though none of these three
+cascade into anything else (they're leaf records). Only the dynamic lists
+are editable — the static curriculum-reference content (lesson-bank cards,
+the 4 static quiz cards, the static exam calendar table) is untouched, by
+design. **Acceptance confirmed**: `sailaja-os-browser-verification`'s new
+`verify-content-edit-delete.mjs`, 63/63 PASS — add → edit-prefill-check →
+cancel-is-a-no-op → real-edit-in-place → **reload** → delete → **reload**,
+for all three entity types, plus static-content-untouched negative
+controls throughout.
 
 **Result confirmed** (echoing `sailaja-os-frontier-and-method`'s falsifiable
 milestones): one Playwright script performed all three actions in sequence,

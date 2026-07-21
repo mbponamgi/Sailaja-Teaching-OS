@@ -81,9 +81,9 @@ for that → `sailaja-os-debugging-playbook`).
 |---|---|---|---|---|
 | `teach_os_students` | **LIVE** since 2026-07-21 | JSON array of student records (schema below) | `initDatabase()`, `addNewStudent()`, `saveStudentEdit()`, `deleteStudent()` | `renderStudents()`, `viewStudent()`, `populateSessionStudentSelect()`, `populateExamStudentSelect()`, `populatePaymentStudentSelect()`, `populateFeeReminderStudentSelect()` |
 | `teach_os_sessions` | **LIVE** since 2026-07-21 | JSON array of session records — also serves as the attendance record (a session with `studentId`+`date` IS attendance; no separate feature was built, per `sailaja-os-frontier-and-method` Item 1) | `logSession()`, `deleteStudent()` (cascade-removes a deleted student's sessions) | `getSessionsForStudent()`, `renderViewStudentSessions()` |
-| `teach_os_lessons` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of lesson-plan records (schema below) | `addLesson()` | `renderLessons()` |
-| `teach_os_exams` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of exam records (schema below) | `addExam()` | `renderExams()` |
-| `teach_os_quiz` | **LIVE** since 2026-07-21 (new, Phase 3(d)) | JSON array of quiz-question records (schema below) | `addQuizQuestion()` | `renderQuiz()` |
+| `teach_os_lessons` | **LIVE** since 2026-07-21 (new, Phase 3(d); edit/delete added same day) | JSON array of lesson-plan records (schema below) | `addLesson()` (add + edit), `deleteLesson()` | `renderLessons()` |
+| `teach_os_exams` | **LIVE** since 2026-07-21 (new, Phase 3(d); edit/delete added same day) | JSON array of exam records (schema below) | `addExam()` (add + edit), `deleteExam()` | `renderExams()` |
+| `teach_os_quiz` | **LIVE** since 2026-07-21 (new, Phase 3(d); edit/delete added same day) | JSON array of quiz-question records (schema below) | `addQuizQuestion()` (add + edit), `deleteQuizQuestion()` | `renderQuiz()` |
 | `teach_os_payments` | **LIVE** since 2026-07-21 (new, Item 3) | JSON array of payment records (schema below) | `logPayment()`, `deleteStudent()` (cascade-removes a deleted student's payments) | `getPaymentsForStudent()`, `isPaidForMonth()`, `renderViewStudentPayments()` |
 | `teach_os_last_export` | **LIVE** since 2026-07-21 (new, Item 4) | ISO-8601 timestamp string, e.g. `"2026-07-21T09:24:32.501Z"` | `exportData()`, on every successful backup download | `renderBackupStatus()`, `checkBackupNudge()` — **not** one of `BACKUP_KEYS`, so it is never itself included in or overwritten by a backup/restore round-trip |
 | `sailaja-dark` | **LIVE** (unchanged) | string `'1'` or `'0'` | `toggleDark()` | restore IIFE, runs before DOMContentLoaded |
@@ -174,10 +174,16 @@ function of the current fee setting).
 
 ### Lesson, exam, and quiz-question schemas (new, 2026-07-21, Phase 3(d))
 
-Built on explicit owner request, after Item 1's core CRUD. No edit/delete
-path exists for any of these three — add-and-persist only, deliberately
-smaller in scope than the student/session work. `nextId()` and `esc()` are
-shared with the student/session functions.
+Built on explicit owner request, after Item 1's core CRUD. **Was add-only
+at first** (deliberately smaller in scope than the student/session work) —
+**edit/delete added later the same day**, also on explicit owner request.
+Each entity's add modal is reused for editing (one shared save handler
+branching on a module-level `editingLessonId`/`editingExamId`/
+`editingQuizId`, not a separate saveXEdit()-style function); delete is
+`confirm()`-gated, matching the student/session/payment cascade-delete
+discipline, though none of these three cascade into anything else (leaf
+records, nothing references a lesson/exam/quiz id elsewhere). `nextId()`
+and `esc()` are shared with the student/session functions.
 
 **`teach_os_lessons`** (append via `unshift`, newest first, matching the
 students convention):
